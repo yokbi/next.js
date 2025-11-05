@@ -26,8 +26,6 @@ use turbo_tasks_fs::{
 use turbo_unix_path::sys_to_unix;
 use turbopack::{
     ModuleAssetContext,
-    css::chunk::CssChunkType,
-    ecmascript::{TreeShakingMode, chunk::EcmascriptChunkType},
     module_options::{EcmascriptOptionsContext, ModuleOptionsContext, TypescriptTransformOptions},
 };
 use turbopack_core::{
@@ -49,6 +47,8 @@ use turbopack_core::{
         options::{ImportMap, ImportMapping},
     },
 };
+use turbopack_css::chunk::CssChunkType;
+use turbopack_ecmascript::{TreeShakingMode, chunk::EcmascriptChunkType};
 use turbopack_ecmascript_runtime::RuntimeType;
 use turbopack_node::{debug::should_debug, evaluate::evaluate};
 use turbopack_nodejs::NodeJsChunkingContext;
