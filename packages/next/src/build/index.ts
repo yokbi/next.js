@@ -870,7 +870,8 @@ async function writeFullyStaticExport(
   enabledDirectories: NextEnabledDirectories,
   configOutDir: string,
   nextBuildSpan: Span,
-  appDirOnly: boolean
+  appDirOnly: boolean,
+  worker: StaticWorker
 ): Promise<void> {
   const exportApp = (require('../export') as typeof import('../export'))
     .default as typeof import('../export').default
@@ -886,7 +887,8 @@ async function writeFullyStaticExport(
       numWorkers: getNumberOfWorkers(config),
       appDirOnly,
     },
-    nextBuildSpan
+    nextBuildSpan,
+    worker
   )
 }
 
@@ -1967,7 +1969,7 @@ export default async function build(
 
       process.env.NEXT_PHASE = PHASE_PRODUCTION_BUILD
 
-      const worker = createStaticWorker(config, {
+      const staticWorker = createStaticWorker(config, {
         numberOfWorkers,
         debuggerPortOffset: -1,
       })
@@ -2005,7 +2007,7 @@ export default async function build(
           nonStaticErrorPageSpan.traceAsyncFn(
             async () =>
               hasCustomErrorPage &&
-              (await worker.hasCustomGetInitialProps({
+              (await staticWorker.hasCustomGetInitialProps({
                 page: '/_error',
                 distDir,
                 checkingApp: false,
@@ -2016,7 +2018,7 @@ export default async function build(
         const errorPageStaticResult = nonStaticErrorPageSpan.traceAsyncFn(
           async () =>
             hasCustomErrorPage &&
-            worker.isPageStatic({
+            staticWorker.isPageStatic({
               dir,
               page: '/_error',
               distDir,
@@ -2038,7 +2040,7 @@ export default async function build(
         const appPageToCheck = '/_app'
 
         const customAppGetInitialPropsPromise = hasUserPagesRoutes
-          ? worker.hasCustomGetInitialProps({
+          ? staticWorker.hasCustomGetInitialProps({
               page: appPageToCheck,
               distDir,
               checkingApp: true,
@@ -2047,7 +2049,7 @@ export default async function build(
           : Promise.resolve(false)
 
         const namedExportsPromise = hasUserPagesRoutes
-          ? worker.getDefinedNamedExports({
+          ? staticWorker.getDefinedNamedExports({
               page: appPageToCheck,
               distDir,
               sriEnabled,
@@ -2227,7 +2229,7 @@ export default async function build(
                         checkPageSpan.traceChild('is-page-static')
                       let workerResult = await isPageStaticSpan.traceAsyncFn(
                         () => {
-                          return worker.isPageStatic({
+                          return staticWorker.isPageStatic({
                             dir,
                             page,
                             originalAppPath,
@@ -3079,7 +3081,8 @@ export default async function build(
               numWorkers: numberOfWorkers,
               appDirOnly,
             },
-            nextBuildSpan
+            nextBuildSpan,
+            staticWorker
           )
 
           // If there was no result, there's nothing more to do.
@@ -4009,7 +4012,7 @@ export default async function build(
       }
 
       // ensure the worker is not left hanging
-      worker.end()
+      staticWorker.end()
 
       const analysisEnd = process.hrtime(analysisBegin)
       telemetry.record(
@@ -4193,7 +4196,8 @@ export default async function build(
               enabledDirectories,
               configOutDir,
               nextBuildSpan,
-              appDirOnly
+              appDirOnly,
+              staticWorker
             )
           })
       }
