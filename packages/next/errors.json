@@ -920,5 +920,7 @@
   "919": "%s is being parsed as a normalized route, but it has a route group or parallel route segment.",
   "920": "Invalid interception route: %s",
   "921": "You cannot define a route with the same specificity as an optional catch-all route (\"%s\" and \"/[[...%s]]\").",
-  "922": "Optional route parameters are not yet supported (\"[%s]\") in route \"%s\"."
+  "922": "Optional route parameters are not yet supported (\"[%s]\") in route \"%s\".",
+  "923": "Expected a dynamic route, but got a static route: %s",
+  "924": "Unexpected empty path segments match for a route \"%s\" with param \"%s\" of type \"%s\""
 }
