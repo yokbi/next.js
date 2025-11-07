@@ -4011,8 +4011,11 @@ export default async function build(
         buildTracesSpinner = createSpinner('Collecting build traces')
       }
 
-      // ensure the worker is not left hanging
-      staticWorker.end()
+      // When output: export we want to end the worker later as it's still used for writeFullyStaticExport
+      if (config.output !== 'export') {
+        // ensure the worker is not left hanging
+        staticWorker.end()
+      }
 
       const analysisEnd = process.hrtime(analysisBegin)
       telemetry.record(
@@ -4200,6 +4203,8 @@ export default async function build(
               staticWorker
             )
           })
+        // End the worker here when it's output: export.
+        staticWorker.end()
       }
 
       // This should come after output: export handling but before
