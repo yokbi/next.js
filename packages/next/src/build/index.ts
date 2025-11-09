@@ -870,8 +870,10 @@ async function writeFullyStaticExport(
   enabledDirectories: NextEnabledDirectories,
   configOutDir: string,
   nextBuildSpan: Span,
-  appDirOnly: boolean,
-  worker: StaticWorker
+  appDirOnly: boolean
+  // TODO: Reusing the worker seems to break finding if it's `.html` or a JS page.
+  // Because writeFullyStaticExport is called after `exportApp` has been called before
+  // worker: StaticWorker | undefined
 ): Promise<void> {
   const exportApp = (require('../export') as typeof import('../export'))
     .default as typeof import('../export').default
@@ -887,8 +889,8 @@ async function writeFullyStaticExport(
       numWorkers: getNumberOfWorkers(config),
       appDirOnly,
     },
-    nextBuildSpan,
-    worker
+    nextBuildSpan
+    // worker
   )
 }
 
