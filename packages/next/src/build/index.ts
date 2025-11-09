@@ -4194,6 +4194,11 @@ export default async function build(
       }
 
       if (config.output === 'export') {
+        // TODO: When writeFullyStaticExport doesn't fail when staticWorker is passed moved this after writeFullyStaticExport.
+        // End the worker here when it's output: export.
+        staticWorker.end()
+        staticWorker = undefined! // Reset staticWorker to make sure it does not end in `finally`
+
         await nextBuildSpan
           .traceChild('output-export-full-static-export')
           .traceAsyncFn(async () => {
@@ -4203,13 +4208,10 @@ export default async function build(
               enabledDirectories,
               configOutDir,
               nextBuildSpan,
-              appDirOnly,
-              staticWorker
+              appDirOnly
+              // staticWorker
             )
           })
-        // End the worker here when it's output: export.
-        staticWorker.end()
-        staticWorker = undefined! // Reset staticWorker to make sure it does not end in `finally`
       }
 
       // This should come after output: export handling but before
