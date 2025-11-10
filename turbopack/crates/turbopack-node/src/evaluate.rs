@@ -24,7 +24,7 @@ use turbopack_core::{
     },
     module::Module,
     module_graph::{ModuleGraph, chunk_group_info::ChunkGroupEntry},
-    output::{OutputAsset, OutputAssets},
+    output::{OutputAsset, OutputAssets, OutputAssetsReferences},
     reference_type::{InnerAssets, ReferenceType},
     source::Source,
     virtual_source::VirtualSource,
@@ -151,7 +151,7 @@ async fn emit_evaluate_pool_assets_operation(
             .with_entry(*ResolvedVc::try_downcast(entry_module).unwrap()),
         module_graph,
         OutputAssets::empty(),
-        OutputAssets::empty(),
+        OutputAssetsReferences::empty(),
     );
 
     let output_root = chunking_context.output_root().owned().await?;
