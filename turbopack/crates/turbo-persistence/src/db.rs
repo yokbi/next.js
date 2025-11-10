@@ -1100,6 +1100,7 @@ impl<S: ParallelScheduler, const FAMILIES: usize> TurboPersistence<S, FAMILIES> 
                                             collector.entries.push(current);
                                         } else {
                                             // Override value
+                                            // TODO delete blob file
                                         }
                                     }
                                     current = Some(entry);
