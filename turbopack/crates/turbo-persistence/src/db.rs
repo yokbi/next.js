@@ -641,7 +641,7 @@ impl<S: ParallelScheduler, const FAMILIES: usize> TurboPersistence<S, FAMILIES> 
                 writeln!(log, "Time {time}")?;
                 let span = time.until(Timestamp::now())?;
                 writeln!(log, "Commit {seq:08} {keys_written} keys in {span:#}")?;
-                writeln!(log, "FAM | META SEQ | SST SEQ        | RANGE")?;
+                writeln!(log, "FAM | META SEQ | SST SEQ         | RANGE")?;
                 for (meta_seq, family, ssts, obsolete) in new_meta_info {
                     for (seq, min, max, size, flags) in ssts {
                         writeln!(
@@ -701,7 +701,7 @@ impl<S: ParallelScheduler, const FAMILIES: usize> TurboPersistence<S, FAMILIES> 
                 #[cfg(feature = "verbose_log")]
                 {
                     writeln!(log, "New database state:")?;
-                    writeln!(log, "FAM | META SEQ | SST SEQ        | RANGE")?;
+                    writeln!(log, "FAM | META SEQ | SST SEQ  FLAGS | RANGE")?;
                     let inner = self.inner.read();
                     let families = inner.meta_files.iter().map(|meta| meta.family()).filter({
                         let mut set = HashSet::new();
@@ -718,7 +718,8 @@ impl<S: ParallelScheduler, const FAMILIES: usize> TurboPersistence<S, FAMILIES> 
                                 let range = entry.range();
                                 writeln!(
                                     log,
-                                    "{family:3} | {meta_seq:08} | {seq:08}        | {}",
+                                    "{family:3} | {meta_seq:08} | {seq:08} {:>6} | {}",
+                                    entry.flags(),
                                     range_to_str(range.min_hash, range.max_hash)
                                 )?;
                             }
@@ -1241,7 +1242,7 @@ impl<S: ParallelScheduler, const FAMILIES: usize> TurboPersistence<S, FAMILIES> 
                                         let (min, max) = ssts_with_ranges[*i].range().into_inner();
                                         writeln!(
                                             log,
-                                            "{family:3} | {meta_seq:08} | {seq:08} INPUT  | {} ",
+                                            "{family:3} | {meta_seq:08} | {seq:08} INPUT  | {}",
                                             range_to_str(min, max)
                                         )?;
                                     }
@@ -1250,8 +1251,10 @@ impl<S: ParallelScheduler, const FAMILIES: usize> TurboPersistence<S, FAMILIES> 
                                         let max = meta.max_hash;
                                         writeln!(
                                             log,
-                                            "{family:3} | {meta_seq:08} | {seq:08} OUTPUT | {}",
-                                            range_to_str(min, max)
+                                            "{family:3} | {meta_seq:08} | {seq:08} OUTPUT | {} \
+                                             ({})",
+                                            range_to_str(min, max),
+                                            meta.flags
                                         )?;
 
                                         meta_file_builder.add(seq, meta);
