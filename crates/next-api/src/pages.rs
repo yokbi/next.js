@@ -1428,7 +1428,7 @@ impl PageEndpoint {
                         fxindexset![]
                     };
 
-                    let referenced_assets = references.direct_assets();
+                    let referenced_assets = references.all_assets();
 
                     let all_assets = assets.concatenate(referenced_assets);
                     let assets_ref = assets.await?;

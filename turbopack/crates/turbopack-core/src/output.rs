@@ -62,13 +62,13 @@ impl OutputAssetsReferences {
     /// Returns only direct referenced assets and does not include assets referenced indirectly by
     /// them.
     #[turbo_tasks::function]
-    pub async fn direct_assets(&self) -> Result<Vc<OutputAssets>> {
+    pub async fn all_assets(&self) -> Result<Vc<OutputAssets>> {
         let mut assets: FxIndexSet<_> = FxIndexSet::default();
         for reference in &self.0 {
             assets.extend(
                 reference
                     .references()
-                    .direct_assets()
+                    .all_assets()
                     .await?
                     .into_iter()
                     .copied(),
