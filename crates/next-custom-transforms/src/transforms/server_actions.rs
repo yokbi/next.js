@@ -2164,6 +2164,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
 
                     // Use original export name in actions map (not the wrapper ident)
                     actions.insert(ref_id.clone(), export_name.clone());
+                    self.has_cache = true;
 
                     // let $$RSC_SERVER_CACHE_exportName = exportName;
                     self.extra_items
