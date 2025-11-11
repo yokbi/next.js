@@ -1908,7 +1908,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
         };
 
         // Make it a hashmap of id -> name.
-        let actions = actions
+        let mut actions = actions
             .into_iter()
             .map(|a| (a.1, a.0))
             .collect::<ActionsMap>();
@@ -2077,6 +2077,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                         ident.span,
                         self.private_ctxt,
                     );
+
+                    // Add to actions map using the original export name (not the wrapper name)
+                    // since that's what the client will use to call the function
+                    actions.insert(ref_id.clone(), export_name.clone());
 
                     // let $$RSC_SERVER_CACHE_exportName = ident;
                     self.extra_items
