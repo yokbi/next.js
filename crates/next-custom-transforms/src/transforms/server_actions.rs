@@ -2263,14 +2263,13 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     specifiers: vec![ExportSpecifier::Named(
                                         ExportNamedSpecifier {
                                             span: DUMMY_SP,
-                                            orig: ModuleExportName::Ident(wrapper_ident.into()),
+                                            orig: ModuleExportName::Ident(wrapper_ident),
                                             exported: Some(ModuleExportName::Ident(
                                                 Ident::new(
                                                     export_name.clone(),
                                                     DUMMY_SP,
                                                     Default::default(),
-                                                )
-                                                .into(),
+                                                ),
                                             )),
                                             is_type_only: false,
                                         },
