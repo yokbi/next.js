@@ -185,7 +185,7 @@ pub fn server_actions<C: Comments>(
 
         arrow_or_fn_expr_ident: None,
         exported_local_ids: FxHashSet::default(),
-        local_arrow_or_fn_ids: FxHashSet::default(),
+        local_ids_that_may_need_cache_runtime_wrapper: FxHashSet::default(),
 
         use_cache_telemetry_tracker,
     })
@@ -244,7 +244,7 @@ struct ServerActions<C: Comments> {
         /* ident */ Ident,
         /* name */ Atom,
         /* id */ Atom,
-        /* is_arrow_or_fn */ bool,
+        /* needs_cache_runtime_wrapper */ bool,
     )>,
 
     annotations: Vec<Stmt>,
@@ -256,8 +256,10 @@ struct ServerActions<C: Comments> {
 
     arrow_or_fn_expr_ident: Option<Ident>,
     exported_local_ids: FxHashSet<Id>,
-    /// Track which local IDs are arrow/fn expressions (collected during pre-pass)
-    local_arrow_or_fn_ids: FxHashSet<Id>,
+    /// Track which local IDs may need cache runtime wrappers (collected during pre-pass).
+    /// This includes call expressions, identifiers, etc. but excludes known functions
+    /// (arrow/fn declarations) and non-functions (object/array literals).
+    local_ids_that_may_need_cache_runtime_wrapper: FxHashSet<Id>,
 
     use_cache_telemetry_tracker: Rc<RefCell<FxHashMap<String, usize>>>,
 }
@@ -1399,20 +1401,28 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                         }
                     }
                     ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => {
-                        // Track which const declarations are arrow/fn expressions
+                        // Track which declarations may need cache runtime wrappers
                         for decl in &var_decl.decls {
                             if let Pat::Ident(ident_pat) = &decl.name {
                                 if let Some(init) = &decl.init {
-                                    if matches!(&**init, Expr::Arrow(_) | Expr::Fn(_)) {
-                                        self.local_arrow_or_fn_ids.insert(ident_pat.id.to_id());
+                                    let may_need_wrapper = match &**init {
+                                        // Known functions - don't need wrapper
+                                        Expr::Arrow(_) | Expr::Fn(_) => false,
+                                        // Definitely not functions - don't need wrapper
+                                        Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => false,
+                                        // Unknown/might be function - needs runtime check
+                                        _ => true,
+                                    };
+                                    if may_need_wrapper {
+                                        self.local_ids_that_may_need_cache_runtime_wrapper
+                                            .insert(ident_pat.id.to_id());
                                     }
                                 }
                             }
                         }
                     }
-                    ModuleItem::Stmt(Stmt::Decl(Decl::Fn(fn_decl))) => {
-                        // Track function declarations as well
-                        self.local_arrow_or_fn_ids.insert(fn_decl.ident.to_id());
+                    ModuleItem::Stmt(Stmt::Decl(Decl::Fn(_fn_decl))) => {
+                        // Function declarations are known functions - don't need wrapper
                     }
                     _ => {}
                 }
@@ -1469,13 +1479,28 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             }
                             Decl::Var(var) => {
                                 // export const foo = 1
-                                // Collect idents and check if their init is arrow/fn
+                                // Collect idents and check if their init needs runtime wrapper
+                                let mut has_export_needing_wrapper = false;
                                 for decl in &var.decls {
                                     if let Pat::Ident(ident_pat) = &decl.name {
-                                        let is_arrow_or_fn =
-                                            decl.init.as_ref().map_or(false, |init| {
-                                                matches!(&**init, Expr::Arrow(_) | Expr::Fn(_))
-                                            });
+                                        // Determine if this export needs a runtime wrapper in cache
+                                        // files
+                                        let needs_cache_runtime_wrapper = if let Some(init) =
+                                            &decl.init
+                                        {
+                                            match &**init {
+                                                // Known functions - no runtime wrapper needed
+                                                Expr::Arrow(_) | Expr::Fn(_) => false,
+                                                // Definitely not functions - skip entirely
+                                                Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => {
+                                                    false
+                                                }
+                                                // Unknown/might be function - needs runtime check
+                                                _ => true,
+                                            }
+                                        } else {
+                                            false
+                                        };
 
                                         self.exported_idents.push((
                                             ident_pat.id.clone(),
@@ -1485,8 +1510,12 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                 in_cache_file,
                                                 None,
                                             ),
-                                            is_arrow_or_fn,
+                                            needs_cache_runtime_wrapper,
                                         ));
+
+                                        if needs_cache_runtime_wrapper {
+                                            has_export_needing_wrapper = true;
+                                        }
                                     }
                                 }
 
@@ -1497,6 +1526,12 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                             disallowed_export_span = *span;
                                         }
                                     }
+                                }
+
+                                // If we're in a cache file and this export needs a runtime wrapper,
+                                // convert to a regular declaration (remove export keyword)
+                                if in_cache_file && has_export_needing_wrapper {
+                                    stmt = ModuleItem::Stmt(Stmt::Decl(Decl::Var(var.clone())));
                                 }
                             }
                             Decl::TsInterface(_) => {}
@@ -1519,6 +1554,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     disallowed_export_span = named.span;
                                 }
                             } else {
+                                let mut has_export_needing_wrapper = false;
                                 for spec in &mut named.specifiers {
                                     if let ExportSpecifier::Named(ExportNamedSpecifier {
                                         orig: ModuleExportName::Ident(ident),
@@ -1528,9 +1564,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     }) = spec
                                     {
                                         if !*is_type_only {
-                                            // Check if this identifier is an arrow/fn from pre-pass
-                                            let is_arrow_or_fn =
-                                                self.local_arrow_or_fn_ids.contains(&ident.to_id());
+                                            // Check if this identifier may need a runtime wrapper
+                                            let needs_cache_runtime_wrapper = self
+                                                .local_ids_that_may_need_cache_runtime_wrapper
+                                                .contains(&ident.to_id());
 
                                             if let Some(export_name) = exported {
                                                 if let ModuleExportName::Ident(Ident {
@@ -1546,7 +1583,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                             in_cache_file,
                                                             None,
                                                         ),
-                                                        is_arrow_or_fn,
+                                                        needs_cache_runtime_wrapper,
                                                     ));
                                                 } else if let ModuleExportName::Str(str) =
                                                     export_name
@@ -1560,7 +1597,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                             in_cache_file,
                                                             None,
                                                         ),
-                                                        is_arrow_or_fn,
+                                                        needs_cache_runtime_wrapper,
                                                     ));
                                                 }
                                             } else {
@@ -1573,13 +1610,23 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                         in_cache_file,
                                                         None,
                                                     ),
-                                                    is_arrow_or_fn,
+                                                    needs_cache_runtime_wrapper,
                                                 ));
+                                            }
+
+                                            if needs_cache_runtime_wrapper {
+                                                has_export_needing_wrapper = true;
                                             }
                                         }
                                     } else {
                                         disallowed_export_span = named.span;
                                     }
+                                }
+
+                                // If we're in a cache file and this export needs a runtime wrapper,
+                                // remove the export statement entirely
+                                if in_cache_file && has_export_needing_wrapper {
+                                    continue;
                                 }
                             }
                         }
@@ -1719,9 +1766,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             }
                             Expr::Ident(ident) => {
                                 // export default foo
-                                // Check if this identifier is a known arrow/fn from pre-pass
-                                let is_arrow_or_fn =
-                                    self.local_arrow_or_fn_ids.contains(&ident.to_id());
+                                // Check if this identifier may need a runtime wrapper
+                                let needs_cache_runtime_wrapper = self
+                                    .local_ids_that_may_need_cache_runtime_wrapper
+                                    .contains(&ident.to_id());
                                 self.exported_idents.push((
                                     ident.clone(),
                                     atom!("default"),
@@ -1730,8 +1778,15 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         in_cache_file,
                                         None,
                                     ),
-                                    is_arrow_or_fn,
+                                    needs_cache_runtime_wrapper,
                                 ));
+
+                                // If we're in a cache file and this needs a wrapper,
+                                // remove the export statement (we'll generate a new one with
+                                // wrapper)
+                                if in_cache_file && needs_cache_runtime_wrapper {
+                                    continue;
+                                }
                             }
                             Expr::Call(call) => {
                                 // export default fn()
@@ -1757,6 +1812,12 @@ impl<C: Comments> VisitMut for ServerActions<C> {
 
                                 *default_expr.expr =
                                     assign_arrow_expr(&new_ident, Expr::Call(call.clone()));
+
+                                // If we're in a cache file, remove the export statement
+                                // (we'll generate a new one with wrapper)
+                                if in_cache_file {
+                                    continue;
+                                }
                             }
                             _ => {
                                 disallowed_export_span = default_expr.span;
@@ -1880,7 +1941,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
 
         // If it's a "use server" or a "use cache" file, all exports need to be annotated.
         if should_track_exports {
-            for (ident, export_name, ref_id, is_arrow_or_fn) in self.exported_idents.iter() {
+            for (ident, export_name, ref_id, needs_cache_runtime_wrapper) in
+                self.exported_idents.iter()
+            {
                 if !self.config.is_react_server_layer {
                     if export_name == "default" {
                         let export_expr = ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(
@@ -1971,8 +2034,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                     // We generate: let x = orig; if (typeof orig === "function") { x = wrapper(...)
                     // }
                     //
-                    // Skip exports that are known to be arrow/fn at compile time
-                    if *is_arrow_or_fn {
+                    // Skip exports that don't need runtime wrappers (known functions, literals,
+                    // etc.)
+                    if !*needs_cache_runtime_wrapper {
                         continue;
                     }
 

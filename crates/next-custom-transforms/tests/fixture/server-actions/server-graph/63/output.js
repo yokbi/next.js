@@ -18,13 +18,11 @@ Object["defineProperty"]($$RSC_SERVER_CACHE_0, "name", {
 // @ts-ignore
 // export { getData } from './data'
 export const getCachedData = $$RSC_SERVER_CACHE_0;
-export const aliased = getCachedStuff;
+const aliased = getCachedStuff;
 const Layout = wrap(async ()=><div>Layout</div>);
 const Other = wrap(async ()=><div>Other</div>);
-export const Sync = wrap(()=><div>Sync</div>);
-export const wrapped = wrap(async ()=>'foo', async ()=>'bar', async ()=>async ()=>'baz', ()=>'sync');
-export default Layout;
-export { Other, getCachedStuff };
+const Sync = wrap(()=><div>Sync</div>);
+const wrapped = wrap(async ()=>'foo', async ()=>'bar', async ()=>async ()=>'baz', ()=>'sync');
 let $$RSC_SERVER_CACHE_aliased = aliased;
 if (typeof aliased === "function") {
     $$RSC_SERVER_CACHE_aliased = $$reactCache__(function aliased1() {
@@ -80,14 +78,3 @@ Object["defineProperty"]($$RSC_SERVER_CACHE_Other, "name", {
     value: "Other"
 });
 export { $$RSC_SERVER_CACHE_Other as Other };
-let $$RSC_SERVER_CACHE_getCachedStuff = getCachedStuff;
-if (typeof getCachedStuff === "function") {
-    $$RSC_SERVER_CACHE_getCachedStuff = $$reactCache__(function getCachedStuff1() {
-        return $$cache__("default", "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", 0, getCachedStuff, arguments);
-    });
-    registerServerReference($$RSC_SERVER_CACHE_getCachedStuff, "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", null);
-}
-Object["defineProperty"]($$RSC_SERVER_CACHE_getCachedStuff, "name", {
-    value: "getCachedStuff"
-});
-export { $$RSC_SERVER_CACHE_getCachedStuff as getCachedStuff };
