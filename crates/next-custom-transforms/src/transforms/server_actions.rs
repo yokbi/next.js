@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{hash_map, BTreeMap},
+    collections::{BTreeMap, hash_map},
     convert::{TryFrom, TryInto},
     mem::{replace, take},
     path::{Path, PathBuf},
@@ -16,23 +16,23 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use swc_core::{
-    atoms::{atom, Atom},
+    atoms::{Atom, atom},
     common::{
+        BytePos, DUMMY_SP, FileName, Mark, SourceMap, Span, SyntaxContext,
         comments::{Comment, CommentKind, Comments, SingleThreadedComments},
         errors::HANDLER,
-        source_map::{SourceMapGenConfig, PURE_SP},
+        source_map::{PURE_SP, SourceMapGenConfig},
         util::take::Take,
-        BytePos, FileName, Mark, SourceMap, Span, SyntaxContext, DUMMY_SP,
     },
     ecma::{
         ast::*,
-        codegen::{self, text_writer::JsWriter, Emitter},
-        utils::{private_ident, quote_ident, ExprFactory},
-        visit::{noop_visit_mut_type, visit_mut_pass, VisitMut, VisitMutWith},
+        codegen::{self, Emitter, text_writer::JsWriter},
+        utils::{ExprFactory, private_ident, quote_ident},
+        visit::{VisitMut, VisitMutWith, noop_visit_mut_type, visit_mut_pass},
     },
     quote,
 };
-use turbo_rcstr::{rcstr, RcStr};
+use turbo_rcstr::{RcStr, rcstr};
 
 use crate::FxIndexMap;
 
@@ -1512,45 +1512,35 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             }
                             Decl::Var(var) => {
                                 // export const foo = 1
-                                // Collect all idents from var declarators (including destructuring
-                                // patterns)
                                 let mut has_export_needing_wrapper = false;
 
                                 for decl in &var.decls {
-                                    // First, extract all identifiers from the pattern
                                     let mut idents: Vec<Ident> = Vec::new();
                                     collect_idents_in_pat(&decl.name, &mut idents);
 
-                                    // For each identifier, determine if it needs runtime wrapping
                                     for ident in idents {
                                         let needs_cache_runtime_wrapper = if in_cache_file {
-                                            // Only check init expression for simple Pat::Ident
-                                            // patterns
                                             if let Pat::Ident(_) = &decl.name {
                                                 if let Some(init) = &decl.init {
                                                     match &**init {
-                                                        // Known functions - no runtime wrapper
-                                                        // needed
+                                                        // Known functions don't need wrappers
                                                         Expr::Arrow(_) | Expr::Fn(_) => false,
-                                                        // Definitely not functions - skip entirely
+                                                        // Known non-functions don't need wrappers
                                                         Expr::Object(_)
                                                         | Expr::Array(_)
                                                         | Expr::Lit(_) => false,
-                                                        // Unknown/might be function - needs runtime
-                                                        // check
+                                                        // Everything else needs runtime check
                                                         _ => true,
                                                     }
                                                 } else {
                                                     false
                                                 }
                                             } else {
-                                                // Destructuring patterns - can't determine if
-                                                // function at compile time
-                                                // so they need runtime check
+                                                // Destructuring: can't determine type at compile
+                                                // time
                                                 true
                                             }
                                         } else {
-                                            // Server actions don't need runtime wrappers
                                             false
                                         };
 
@@ -1580,7 +1570,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     }
                                 }
 
-                                // If we're in a cache file and this export needs a runtime wrapper,
+                                // If this export needs a cache runtime wrapper,
                                 // convert to a regular declaration (remove export keyword)
                                 if in_cache_file && has_export_needing_wrapper {
                                     stmt = ModuleItem::Stmt(Stmt::Decl(Decl::Var(var.clone())));
@@ -1599,8 +1589,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             if let Some(src) = &named.src {
                                 // export { x } from './module'
                                 if in_cache_file {
-                                    // For cache files, transform to import + runtime wrapper
-                                    // Convert export specifiers to import specifiers
+                                    // Transform to: import + cache runtime wrapper + export
                                     let import_specs: Vec<ImportSpecifier> = named
                                         .specifiers
                                         .iter()
@@ -1667,7 +1656,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                         in_cache_file,
                                                         None,
                                                     ),
-                                                    true, // needs runtime wrapper
+                                                    true, // needs cache runtime wrapper
                                                 ));
                                             }
                                         }
@@ -1753,7 +1742,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     }
                                 }
 
-                                // If we're in a cache file and this export needs a runtime wrapper,
+                                // If this export needs a cache runtime wrapper,
                                 // remove the export statement entirely
                                 if in_cache_file && has_export_needing_wrapper {
                                     continue;
@@ -2159,19 +2148,14 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             .insert(export_name.clone(), (export_expr, ref_id.clone()));
                     }
                 } else if in_cache_file {
-                    // For "use cache" files, generate runtime-checked wrappers for exports
-                    // that might not be functions at compile time (like re-exported identifiers
-                    // or values returned from HOCs).
-                    // We generate: let x = orig; if (typeof orig === "function") { x = wrapper(...)
-                    // }
-                    //
-                    // Skip exports that don't need runtime wrappers (known functions, literals,
-                    // etc.)
+                    // Generate cache runtime wrapper for exports that might not be functions
+                    // at compile time (re-exported identifiers, HOC results, etc.)
+                    // Pattern: let x = orig; if (typeof orig === "function") { x = wrapper(...) }
+
                     if !*needs_cache_runtime_wrapper {
                         continue;
                     }
 
-                    // Generate the wrapper code
                     let name_value = if export_name == "default" {
                         atom!("default")
                     } else {
@@ -2185,11 +2169,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                         self.private_ctxt,
                     );
 
-                    // Add to actions map using the original export name (not the wrapper name)
-                    // since that's what the client will use to call the function
+                    // Use original export name in actions map (not the wrapper ident)
                     actions.insert(ref_id.clone(), export_name.clone());
 
-                    // let $$RSC_SERVER_CACHE_exportName = ident;
+                    // let $$RSC_SERVER_CACHE_exportName = exportName;
                     self.extra_items
                         .push(ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
                             span: DUMMY_SP,
