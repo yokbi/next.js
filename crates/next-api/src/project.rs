@@ -64,7 +64,9 @@ use turbopack_core::{
     module::Module,
     module_graph::{
         GraphEntries, ModuleGraph, SingleModuleGraph, VisitedModules,
-        binding_usage_info::{OptionBindingUsageInfo, compute_binding_usage_info},
+        binding_usage_info::{
+            BindingUsageInfo, OptionBindingUsageInfo, compute_binding_usage_info,
+        },
         chunk_group_info::ChunkGroupEntry,
     },
     output::{OutputAsset, OutputAssets},
@@ -1869,18 +1871,31 @@ impl Project {
 
     /// Compute the used exports for each module.
     #[turbo_tasks::function]
+    async fn binding_usage_info(self: Vc<Self>) -> Result<Vc<BindingUsageInfo>> {
+        let remove_unused_imports = *self
+            .next_config()
+            .turbopack_remove_unused_imports(self.next_mode())
+            .await?;
+
+        let module_graphs = self.whole_app_module_graphs().await?;
+        Ok(
+            *compute_binding_usage_info(module_graphs.full, remove_unused_imports)
+                // As a performance optimization, we resolve strongly consistently
+                .resolve_strongly_consistent()
+                .await?,
+        )
+    }
+
+    /// Compute the used exports for each module.
+    #[turbo_tasks::function]
     pub async fn export_usage(self: Vc<Self>) -> Result<Vc<OptionBindingUsageInfo>> {
         if *self
             .next_config()
             .turbopack_remove_unused_exports(self.next_mode())
             .await?
         {
-            let module_graphs = self.whole_app_module_graphs().await?;
             Ok(Vc::cell(Some(
-                compute_binding_usage_info(module_graphs.full)
-                    // As a performance optimization, we resolve strongly consistently
-                    .resolve_strongly_consistent()
-                    .await?,
+                self.binding_usage_info().to_resolved().await?,
             )))
         } else {
             Ok(Vc::cell(None))
@@ -1895,12 +1910,8 @@ impl Project {
             .turbopack_remove_unused_imports(self.next_mode())
             .await?
         {
-            let module_graphs = self.whole_app_module_graphs().await?;
             Ok(Vc::cell(Some(
-                compute_binding_usage_info(module_graphs.full)
-                    // As a performance optimization, we resolve strongly consistently
-                    .resolve_strongly_consistent()
-                    .await?,
+                self.binding_usage_info().to_resolved().await?,
             )))
         } else {
             Ok(Vc::cell(None))
