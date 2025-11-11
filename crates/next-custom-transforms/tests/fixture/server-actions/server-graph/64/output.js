@@ -13,7 +13,7 @@ if (typeof Page === "function") {
     });
     registerServerReference($$RSC_SERVER_CACHE_default, "ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d", null);
     Object["defineProperty"]($$RSC_SERVER_CACHE_default, "name", {
-        value: "default"
+        value: "Page"
     });
 }
 export default $$RSC_SERVER_CACHE_default;

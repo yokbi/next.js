@@ -2149,12 +2149,6 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                         continue;
                     }
 
-                    let name_value = if export_name == "default" {
-                        atom!("default")
-                    } else {
-                        export_name.clone()
-                    };
-
                     // Generate wrapper ident: $$RSC_SERVER_CACHE_exportName
                     let wrapper_ident = Ident::new(
                         format!("$$RSC_SERVER_CACHE_{}", export_name).into(),
@@ -2209,15 +2203,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                             "default",
                                             ref_id.clone(),
                                             0,
-                                            if name_value == "default" {
-                                                None
-                                            } else {
-                                                Some(Ident::new(
-                                                    export_name.clone(),
-                                                    DUMMY_SP,
-                                                    Default::default(),
-                                                ))
-                                            },
+                                            // Don't use the same name as the original to avoid
+                                            // shadowing. We don't need it here for call stacks.
+                                            None,
                                             Expr::Ident(ident.clone()),
                                             ident.span,
                                         )),
@@ -2231,7 +2219,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         ident.span,
                                     )),
                                 }),
-                                assign_name_to_ident(&wrapper_ident, &name_value),
+                                assign_name_to_ident(&wrapper_ident, &ident.sym),
                             ],
                             ..Default::default()
                         })),

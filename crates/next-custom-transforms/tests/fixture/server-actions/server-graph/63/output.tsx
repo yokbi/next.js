@@ -27,7 +27,7 @@ const Sync = wrap(()=><div>Sync</div>);
 const wrapped = wrap(async ()=>'foo', async ()=>'bar', async ()=>async ()=>'baz', ()=>'sync');
 let $$RSC_SERVER_CACHE_getData = getData;
 if (typeof getData === "function") {
-    $$RSC_SERVER_CACHE_getData = $$reactCache__(function getData() {
+    $$RSC_SERVER_CACHE_getData = $$reactCache__(function() {
         return $$cache__("default", "ff8fa22f08e492db15701f58a1458cc4ebf782f855", 0, getData, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_getData, "ff8fa22f08e492db15701f58a1458cc4ebf782f855", null);
@@ -38,7 +38,7 @@ if (typeof getData === "function") {
 export { $$RSC_SERVER_CACHE_getData as getData };
 let $$RSC_SERVER_CACHE_aliased = aliased;
 if (typeof aliased === "function") {
-    $$RSC_SERVER_CACHE_aliased = $$reactCache__(function aliased1() {
+    $$RSC_SERVER_CACHE_aliased = $$reactCache__(function() {
         return $$cache__("default", "ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb", 0, aliased, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_aliased, "ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb", null);
@@ -49,7 +49,7 @@ if (typeof aliased === "function") {
 export { $$RSC_SERVER_CACHE_aliased as aliased };
 let $$RSC_SERVER_CACHE_Sync = Sync;
 if (typeof Sync === "function") {
-    $$RSC_SERVER_CACHE_Sync = $$reactCache__(function Sync1() {
+    $$RSC_SERVER_CACHE_Sync = $$reactCache__(function() {
         return $$cache__("default", "ff84effee663e5ce4e0948b55df129a8df904c67aa", 0, Sync, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_Sync, "ff84effee663e5ce4e0948b55df129a8df904c67aa", null);
@@ -60,7 +60,7 @@ if (typeof Sync === "function") {
 export { $$RSC_SERVER_CACHE_Sync as Sync };
 let $$RSC_SERVER_CACHE_wrapped = wrapped;
 if (typeof wrapped === "function") {
-    $$RSC_SERVER_CACHE_wrapped = $$reactCache__(function wrapped1() {
+    $$RSC_SERVER_CACHE_wrapped = $$reactCache__(function() {
         return $$cache__("default", "ff438bb59117ff1af890c80ca3e39d9e888fc93033", 0, wrapped, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_wrapped, "ff438bb59117ff1af890c80ca3e39d9e888fc93033", null);
@@ -76,13 +76,13 @@ if (typeof Layout === "function") {
     });
     registerServerReference($$RSC_SERVER_CACHE_default, "ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d", null);
     Object["defineProperty"]($$RSC_SERVER_CACHE_default, "name", {
-        value: "default"
+        value: "Layout"
     });
 }
 export default $$RSC_SERVER_CACHE_default;
 let $$RSC_SERVER_CACHE_Other = Other;
 if (typeof Other === "function") {
-    $$RSC_SERVER_CACHE_Other = $$reactCache__(function Other1() {
+    $$RSC_SERVER_CACHE_Other = $$reactCache__(function() {
         return $$cache__("default", "ff1acff246876a467753785a92d1f95ac6fe32c9b9", 0, Other, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_Other, "ff1acff246876a467753785a92d1f95ac6fe32c9b9", null);
@@ -93,7 +93,7 @@ if (typeof Other === "function") {
 export { $$RSC_SERVER_CACHE_Other as Other };
 let $$RSC_SERVER_CACHE_getStuff = getStuff;
 if (typeof getStuff === "function") {
-    $$RSC_SERVER_CACHE_getStuff = $$reactCache__(function getStuff1() {
+    $$RSC_SERVER_CACHE_getStuff = $$reactCache__(function() {
         return $$cache__("default", "ff980f8c891ae27674b86a4804d306bdb3065c2e4f", 0, getStuff, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_getStuff, "ff980f8c891ae27674b86a4804d306bdb3065c2e4f", null);
