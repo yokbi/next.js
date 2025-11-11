@@ -3,7 +3,7 @@ import { encryptActionBoundArgs, decryptActionBoundArgs } from "private-next-rsc
 import { cache as $$cache__ } from "private-next-rsc-cache-wrapper";
 import { cache as $$reactCache__ } from "react";
 // @ts-ignore
-import { getCachedStuff, wrap } from './foo';
+import { getCachedStuff as $$RSC_SERVER_CACHE_1_ORIG, wrap } from './foo';
 const $$RSC_SERVER_CACHE_0_INNER = async function getCachedData() {
     // This one already worked before.
     return getCachedStuff();
@@ -19,7 +19,6 @@ Object["defineProperty"]($$RSC_SERVER_CACHE_0, "name", {
 // export { getData } from './data'
 export const getCachedData = $$RSC_SERVER_CACHE_0;
 ;
-const $$RSC_SERVER_CACHE_1_ORIG = getCachedStuff;
 let aliased = $$RSC_SERVER_CACHE_1_ORIG;
 if (typeof $$RSC_SERVER_CACHE_1_ORIG === "function") {
     aliased = $$reactCache__(function aliased() {
@@ -31,14 +30,14 @@ if (typeof $$RSC_SERVER_CACHE_1_ORIG === "function") {
     });
 }
 export { aliased };
-const Layout = wrap(async ()=><div>Layout</div>);
-const Other = wrap(async ()=><div>Other</div>);
+const $$RSC_SERVER_CACHE_2_ORIG = wrap(async ()=><div>Layout</div>);
+const $$RSC_SERVER_CACHE_3_ORIG = wrap(async ()=><div>Other</div>);
 ;
-const $$RSC_SERVER_CACHE_2_ORIG = wrap(()=><div>Sync</div>);
-let Sync = $$RSC_SERVER_CACHE_2_ORIG;
-if (typeof $$RSC_SERVER_CACHE_2_ORIG === "function") {
+const $$RSC_SERVER_CACHE_4_ORIG = wrap(()=><div>Sync</div>);
+let Sync = $$RSC_SERVER_CACHE_4_ORIG;
+if (typeof $$RSC_SERVER_CACHE_4_ORIG === "function") {
     Sync = $$reactCache__(function Sync() {
-        return $$cache__("default", "ff84effee663e5ce4e0948b55df129a8df904c67aa", 0, $$RSC_SERVER_CACHE_2_ORIG, arguments);
+        return $$cache__("default", "ff84effee663e5ce4e0948b55df129a8df904c67aa", 0, $$RSC_SERVER_CACHE_4_ORIG, arguments);
     });
     registerServerReference(Sync, "ff84effee663e5ce4e0948b55df129a8df904c67aa", null);
     Object["defineProperty"](Sync, "name", {
@@ -47,11 +46,11 @@ if (typeof $$RSC_SERVER_CACHE_2_ORIG === "function") {
 }
 export { Sync };
 ;
-const $$RSC_SERVER_CACHE_3_ORIG = wrap(async ()=>'foo', async ()=>'bar', async ()=>async ()=>'baz', ()=>'sync');
-let wrapped = $$RSC_SERVER_CACHE_3_ORIG;
-if (typeof $$RSC_SERVER_CACHE_3_ORIG === "function") {
+const $$RSC_SERVER_CACHE_5_ORIG = wrap(async ()=>'foo', async ()=>'bar', async ()=>async ()=>'baz', ()=>'sync');
+let wrapped = $$RSC_SERVER_CACHE_5_ORIG;
+if (typeof $$RSC_SERVER_CACHE_5_ORIG === "function") {
     wrapped = $$reactCache__(function wrapped() {
-        return $$cache__("default", "ff438bb59117ff1af890c80ca3e39d9e888fc93033", 0, $$RSC_SERVER_CACHE_3_ORIG, arguments);
+        return $$cache__("default", "ff438bb59117ff1af890c80ca3e39d9e888fc93033", 0, $$RSC_SERVER_CACHE_5_ORIG, arguments);
     });
     registerServerReference(wrapped, "ff438bb59117ff1af890c80ca3e39d9e888fc93033", null);
     Object["defineProperty"](wrapped, "name", {
@@ -60,37 +59,37 @@ if (typeof $$RSC_SERVER_CACHE_3_ORIG === "function") {
 }
 export { wrapped };
 ;
-let $$RSC_SERVER_CACHE_4_ORIG = Layout;
-if (typeof $$RSC_SERVER_CACHE_4_ORIG === "function") {
-    $$RSC_SERVER_CACHE_4_ORIG = $$reactCache__(function() {
-        return $$cache__("default", "ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d", 0, Layout, arguments);
+let Layout = $$RSC_SERVER_CACHE_2_ORIG;
+if (typeof $$RSC_SERVER_CACHE_2_ORIG === "function") {
+    Layout = $$reactCache__(function() {
+        return $$cache__("default", "ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d", 0, $$RSC_SERVER_CACHE_2_ORIG, arguments);
     });
-    registerServerReference($$RSC_SERVER_CACHE_4_ORIG, "ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d", null);
-    Object["defineProperty"]($$RSC_SERVER_CACHE_4_ORIG, "name", {
+    registerServerReference(Layout, "ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d", null);
+    Object["defineProperty"](Layout, "name", {
         value: "default"
     });
 }
-export default $$RSC_SERVER_CACHE_4_ORIG;
+export default Layout;
 ;
-let $$RSC_SERVER_CACHE_5_ORIG = Other;
-if (typeof $$RSC_SERVER_CACHE_5_ORIG === "function") {
-    $$RSC_SERVER_CACHE_5_ORIG = $$reactCache__(function Other() {
-        return $$cache__("default", "ff1acff246876a467753785a92d1f95ac6fe32c9b9", 0, Other, arguments);
+let Other = $$RSC_SERVER_CACHE_3_ORIG;
+if (typeof $$RSC_SERVER_CACHE_3_ORIG === "function") {
+    Other = $$reactCache__(function Other() {
+        return $$cache__("default", "ff1acff246876a467753785a92d1f95ac6fe32c9b9", 0, $$RSC_SERVER_CACHE_3_ORIG, arguments);
     });
-    registerServerReference($$RSC_SERVER_CACHE_5_ORIG, "ff1acff246876a467753785a92d1f95ac6fe32c9b9", null);
-    Object["defineProperty"]($$RSC_SERVER_CACHE_5_ORIG, "name", {
+    registerServerReference(Other, "ff1acff246876a467753785a92d1f95ac6fe32c9b9", null);
+    Object["defineProperty"](Other, "name", {
         value: "Other"
     });
 }
 ;
-let $$RSC_SERVER_CACHE_6_ORIG = getCachedStuff;
-if (typeof $$RSC_SERVER_CACHE_6_ORIG === "function") {
-    $$RSC_SERVER_CACHE_6_ORIG = $$reactCache__(function getCachedStuff() {
-        return $$cache__("default", "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", 0, getCachedStuff, arguments);
+let getCachedStuff = $$RSC_SERVER_CACHE_1_ORIG;
+if (typeof $$RSC_SERVER_CACHE_1_ORIG === "function") {
+    getCachedStuff = $$reactCache__(function getCachedStuff() {
+        return $$cache__("default", "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", 0, $$RSC_SERVER_CACHE_1_ORIG, arguments);
     });
-    registerServerReference($$RSC_SERVER_CACHE_6_ORIG, "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", null);
-    Object["defineProperty"]($$RSC_SERVER_CACHE_6_ORIG, "name", {
+    registerServerReference(getCachedStuff, "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", null);
+    Object["defineProperty"](getCachedStuff, "name", {
         value: "getCachedStuff"
     });
 }
-export { $$RSC_SERVER_CACHE_5_ORIG as Other, $$RSC_SERVER_CACHE_6_ORIG as getCachedStuff };
+export { Other, getCachedStuff };
