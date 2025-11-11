@@ -1514,7 +1514,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         let needs_cache_runtime_wrapper = if in_cache_file {
                                             // Only check init expression for simple Pat::Ident
                                             // patterns
-                                            if let Pat::Ident(ident_pat) = &decl.name {
+                                            if let Pat::Ident(_) = &decl.name {
                                                 if let Some(init) = &decl.init {
                                                     match &**init {
                                                         // Known functions - no runtime wrapper
