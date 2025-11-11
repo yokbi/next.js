@@ -2232,93 +2232,22 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         left: AssignTarget::Simple(SimpleAssignTarget::Ident(
                                             wrapper_ident.clone().into(),
                                         )),
-                                        right: Box::new(Expr::Call(CallExpr {
-                                            span: DUMMY_SP,
-                                            callee: Callee::Expr(Box::new(Expr::Ident(
-                                                quote_ident!("$$reactCache__").into(),
-                                            ))),
-                                            args: vec![ExprOrSpread {
-                                                spread: None,
-                                                expr: Box::new(Expr::Fn(FnExpr {
-                                                    ident: if name_value == "default" {
-                                                        None
-                                                    } else {
-                                                        Some(Ident::new(
-                                                            export_name.clone(),
-                                                            DUMMY_SP,
-                                                            Default::default(),
-                                                        ))
-                                                    },
-                                                    function: Box::new(Function {
-                                                        params: vec![],
-                                                        body: Some(BlockStmt {
-                                                            span: DUMMY_SP,
-                                                            ctxt: Default::default(),
-                                                            stmts: vec![Stmt::Return(ReturnStmt {
-                                                                span: DUMMY_SP,
-                                                                arg: Some(Box::new(Expr::Call(
-                                                                    CallExpr {
-                                                                        span: ident.span,
-                                                                        callee: Callee::Expr(
-                                                                            Box::new(Expr::Ident(
-                                                                                quote_ident!(
-                                                                                    "$$cache__"
-                                                                                )
-                                                                                .into(),
-                                                                            )),
-                                                                        ),
-                                                                        args: vec![
-                                                                            Expr::Lit(Lit::Str(
-                                                                                Str {
-                                                                                    span: DUMMY_SP,
-                                                                                    value: atom!(
-                                                                                        "default"
-                                                                                    ),
-                                                                                    raw: None,
-                                                                                },
-                                                                            ))
-                                                                            .as_arg(),
-                                                                            Expr::Lit(Lit::Str(
-                                                                                Str {
-                                                                                    span: DUMMY_SP,
-                                                                                    value: ref_id
-                                                                                        .clone(),
-                                                                                    raw: None,
-                                                                                },
-                                                                            ))
-                                                                            .as_arg(),
-                                                                            Expr::Lit(Lit::Num(
-                                                                                Number {
-                                                                                    span: DUMMY_SP,
-                                                                                    value: 0.0,
-                                                                                    raw: None,
-                                                                                },
-                                                                            ))
-                                                                            .as_arg(),
-                                                                            Expr::Ident(
-                                                                                ident.clone(),
-                                                                            )
-                                                                            .as_arg(),
-                                                                            Box::new(Expr::Ident(
-                                                                                private_ident!(
-                                                                                    DUMMY_SP,
-                                                                                    "arguments"
-                                                                                ),
-                                                                            ))
-                                                                            .as_arg(),
-                                                                        ],
-                                                                        ..Default::default()
-                                                                    },
-                                                                ))),
-                                                            })],
-                                                        }),
-                                                        span: ident.span,
-                                                        ..Default::default()
-                                                    }),
-                                                })),
-                                            }],
-                                            ..Default::default()
-                                        })),
+                                        right: Box::new(create_cache_wrapper(
+                                            "default",
+                                            ref_id.clone(),
+                                            0,
+                                            if name_value == "default" {
+                                                None
+                                            } else {
+                                                Some(Ident::new(
+                                                    export_name.clone(),
+                                                    DUMMY_SP,
+                                                    Default::default(),
+                                                ))
+                                            },
+                                            Expr::Ident(ident.clone()),
+                                            ident.span,
+                                        )),
                                     })),
                                 }),
                                 Stmt::Expr(ExprStmt {
@@ -2797,6 +2726,57 @@ fn retain_names_from_declared_idents(
     *child_names = retained_names;
 }
 
+/// Creates a cache wrapper expression: $$reactCache__(function name() { return $$cache__(...) })
+fn create_cache_wrapper(
+    cache_kind: &str,
+    reference_id: Atom,
+    bound_args_length: usize,
+    fn_ident: Option<Ident>,
+    target_expr: Expr,
+    original_span: Span,
+) -> Expr {
+    let cache_call = CallExpr {
+        span: original_span,
+        callee: quote_ident!("$$cache__").as_callee(),
+        args: vec![
+            Box::new(Expr::from(cache_kind)).as_arg(),
+            Box::new(Expr::from(reference_id.as_str())).as_arg(),
+            Box::new(Expr::Lit(Lit::Num(Number {
+                span: DUMMY_SP,
+                value: bound_args_length as f64,
+                raw: None,
+            })))
+            .as_arg(),
+            Box::new(target_expr).as_arg(),
+            Box::new(Expr::Ident(private_ident!(DUMMY_SP, "arguments"))).as_arg(),
+        ],
+        ..Default::default()
+    };
+
+    // This wrapper function ensures that we have a user-space call stack frame.
+    let wrapper_fn_expr = Box::new(Expr::Fn(FnExpr {
+        ident: fn_ident,
+        function: Box::new(Function {
+            body: Some(BlockStmt {
+                span: DUMMY_SP,
+                stmts: vec![Stmt::Return(ReturnStmt {
+                    span: DUMMY_SP,
+                    arg: Some(Box::new(Expr::Call(cache_call))),
+                })],
+                ..Default::default()
+            }),
+            span: original_span,
+            ..Default::default()
+        }),
+    }));
+
+    Expr::Call(CallExpr {
+        callee: quote_ident!("$$reactCache__").as_callee(),
+        args: vec![wrapper_fn_expr.as_arg()],
+        ..Default::default()
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn create_and_hoist_cache_function(
     cache_kind: &str,
@@ -2847,46 +2827,14 @@ fn create_and_hoist_cache_function(
         hoisted_extra_items.push(ModuleItem::Stmt(assign_name_to_ident(&inner_fn_ident, "")));
     }
 
-    let cache_call = CallExpr {
-        span: original_span,
-        callee: quote_ident!("$$cache__").as_callee(),
-        args: vec![
-            Box::new(Expr::from(cache_kind)).as_arg(),
-            Box::new(Expr::from(reference_id.as_str())).as_arg(),
-            Box::new(Expr::Lit(Lit::Num(Number {
-                span: DUMMY_SP,
-                value: bound_args_length as f64,
-                raw: None,
-            })))
-            .as_arg(),
-            Box::new(Expr::Ident(inner_fn_ident)).as_arg(),
-            Box::new(Expr::Ident(private_ident!(DUMMY_SP, "arguments"))).as_arg(),
-        ],
-        ..Default::default()
-    };
-
-    // This wrapper function ensures that we have a user-space call stack frame.
-    let wrapper_fn_expr = Box::new(Expr::Fn(FnExpr {
-        ident: fn_ident.clone(),
-        function: Box::new(Function {
-            body: Some(BlockStmt {
-                span: DUMMY_SP,
-                stmts: vec![Stmt::Return(ReturnStmt {
-                    span: DUMMY_SP,
-                    arg: Some(Box::new(Expr::Call(cache_call))),
-                })],
-                ..Default::default()
-            }),
-            span: original_span,
-            ..Default::default()
-        }),
-    }));
-
-    let wrapper_fn = Box::new(Expr::Call(CallExpr {
-        callee: quote_ident!("$$reactCache__").as_callee(),
-        args: vec![wrapper_fn_expr.as_arg()],
-        ..Default::default()
-    }));
+    let wrapper_fn = Box::new(create_cache_wrapper(
+        cache_kind,
+        reference_id.clone(),
+        bound_args_length,
+        fn_ident.clone(),
+        Expr::Ident(inner_fn_ident),
+        original_span,
+    ));
 
     hoisted_extra_items.push(ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
         span: DUMMY_SP,
