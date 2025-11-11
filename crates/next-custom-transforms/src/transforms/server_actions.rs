@@ -782,7 +782,11 @@ impl<C: Comments> ServerActions<C> {
         );
 
         if let Some(Ident { sym, .. }) = &self.arrow_or_fn_expr_ident {
-            assign_name_to_ident(&cache_ident, sym.as_str(), &mut self.hoisted_extra_items);
+            self.hoisted_extra_items
+                .push(ModuleItem::Stmt(assign_name_to_ident(
+                    &cache_ident,
+                    sym.as_str(),
+                )));
         }
 
         let bound_args: Vec<_> = ids_from_closure
@@ -856,9 +860,17 @@ impl<C: Comments> ServerActions<C> {
         );
 
         if let Some(Ident { sym, .. }) = fn_name {
-            assign_name_to_ident(&cache_ident, sym.as_str(), &mut self.hoisted_extra_items);
+            self.hoisted_extra_items
+                .push(ModuleItem::Stmt(assign_name_to_ident(
+                    &cache_ident,
+                    sym.as_str(),
+                )));
         } else if self.in_default_export_decl {
-            assign_name_to_ident(&cache_ident, "default", &mut self.hoisted_extra_items);
+            self.hoisted_extra_items
+                .push(ModuleItem::Stmt(assign_name_to_ident(
+                    &cache_ident,
+                    "default",
+                )));
         }
 
         let bound_args: Vec<_> = ids_from_closure
@@ -1806,11 +1818,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                 * wrapper needed */
                                     ));
 
-                                    assign_name_to_ident(
-                                        &new_ident,
-                                        "default",
-                                        &mut self.extra_items,
-                                    );
+                                    self.extra_items.push(ModuleItem::Stmt(assign_name_to_ident(
+                                        &new_ident, "default",
+                                    )));
                                 }
                             }
                         }
@@ -1875,11 +1885,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     ));
 
                                     create_var_declarator(&new_ident, &mut self.extra_items);
-                                    assign_name_to_ident(
-                                        &new_ident,
-                                        "default",
-                                        &mut self.extra_items,
-                                    );
+                                    self.extra_items.push(ModuleItem::Stmt(assign_name_to_ident(
+                                        &new_ident, "default",
+                                    )));
 
                                     *default_expr.expr =
                                         assign_arrow_expr(&new_ident, Expr::Arrow(arrow.clone()));
@@ -1929,7 +1937,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                 ));
 
                                 create_var_declarator(&new_ident, &mut self.extra_items);
-                                assign_name_to_ident(&new_ident, "default", &mut self.extra_items);
+                                self.extra_items.push(ModuleItem::Stmt(assign_name_to_ident(
+                                    &new_ident, "default",
+                                )));
 
                                 *default_expr.expr =
                                     assign_arrow_expr(&new_ident, Expr::Call(call.clone()));
@@ -2319,13 +2329,11 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         ident.span,
                                     )),
                                 }),
+                                assign_name_to_ident(&wrapper_ident, &name_value),
                             ],
                         })),
                         alt: None,
                     })));
-
-                    // Assign name using helper
-                    assign_name_to_ident(&wrapper_ident, &name_value, &mut self.extra_items);
 
                     // Generate export with rename: export { $$RSC_SERVER_CACHE_name as name }
                     if export_name == "default" {
@@ -2836,7 +2844,7 @@ fn create_and_hoist_cache_function(
     // For anonymous functions, set the name property to an empty string to
     // avoid leaking the internal variable name in stack traces.
     if fn_ident.is_none() {
-        assign_name_to_ident(&inner_fn_ident, "", hoisted_extra_items);
+        hoisted_extra_items.push(ModuleItem::Stmt(assign_name_to_ident(&inner_fn_ident, "")));
     }
 
     let cache_call = CallExpr {
@@ -2922,9 +2930,9 @@ fn create_var_declarator(ident: &Ident, extra_items: &mut Vec<ModuleItem>) {
     })))));
 }
 
-fn assign_name_to_ident(ident: &Ident, name: &str, extra_items: &mut Vec<ModuleItem>) {
+fn assign_name_to_ident(ident: &Ident, name: &str) -> Stmt {
     // Assign a name with `Object.defineProperty($$ACTION_0, 'name', {value: 'default'})`
-    extra_items.push(quote!(
+    quote!(
         // WORKAROUND for https://github.com/microsoft/TypeScript/issues/61165
         // This should just be
         //
@@ -2933,10 +2941,10 @@ fn assign_name_to_ident(ident: &Ident, name: &str, extra_items: &mut Vec<ModuleI
         // but due to the above typescript bug, `Object.defineProperty` calls are typechecked incorrectly
         // in js files, and it can cause false positives when typechecking our fixture files.
         "Object[\"defineProperty\"]($action, \"name\", { value: $name });"
-            as ModuleItem,
+            as Stmt,
         action: Ident = ident.clone(),
         name: Expr = name.into(),
-    ));
+    )
 }
 
 fn assign_arrow_expr(ident: &Ident, expr: Expr) -> Expr {

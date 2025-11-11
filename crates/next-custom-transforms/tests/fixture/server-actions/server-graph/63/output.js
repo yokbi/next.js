@@ -29,10 +29,10 @@ if (typeof getData === "function") {
         return $$cache__("default", "ff8fa22f08e492db15701f58a1458cc4ebf782f855", 0, getData, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_getData, "ff8fa22f08e492db15701f58a1458cc4ebf782f855", null);
+    Object["defineProperty"]($$RSC_SERVER_CACHE_getData, "name", {
+        value: "getData"
+    });
 }
-Object["defineProperty"]($$RSC_SERVER_CACHE_getData, "name", {
-    value: "getData"
-});
 export { $$RSC_SERVER_CACHE_getData as getData };
 let $$RSC_SERVER_CACHE_aliased = aliased;
 if (typeof aliased === "function") {
@@ -40,10 +40,10 @@ if (typeof aliased === "function") {
         return $$cache__("default", "ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb", 0, aliased, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_aliased, "ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb", null);
+    Object["defineProperty"]($$RSC_SERVER_CACHE_aliased, "name", {
+        value: "aliased"
+    });
 }
-Object["defineProperty"]($$RSC_SERVER_CACHE_aliased, "name", {
-    value: "aliased"
-});
 export { $$RSC_SERVER_CACHE_aliased as aliased };
 let $$RSC_SERVER_CACHE_Sync = Sync;
 if (typeof Sync === "function") {
@@ -51,10 +51,10 @@ if (typeof Sync === "function") {
         return $$cache__("default", "ff84effee663e5ce4e0948b55df129a8df904c67aa", 0, Sync, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_Sync, "ff84effee663e5ce4e0948b55df129a8df904c67aa", null);
+    Object["defineProperty"]($$RSC_SERVER_CACHE_Sync, "name", {
+        value: "Sync"
+    });
 }
-Object["defineProperty"]($$RSC_SERVER_CACHE_Sync, "name", {
-    value: "Sync"
-});
 export { $$RSC_SERVER_CACHE_Sync as Sync };
 let $$RSC_SERVER_CACHE_wrapped = wrapped;
 if (typeof wrapped === "function") {
@@ -62,10 +62,10 @@ if (typeof wrapped === "function") {
         return $$cache__("default", "ff438bb59117ff1af890c80ca3e39d9e888fc93033", 0, wrapped, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_wrapped, "ff438bb59117ff1af890c80ca3e39d9e888fc93033", null);
+    Object["defineProperty"]($$RSC_SERVER_CACHE_wrapped, "name", {
+        value: "wrapped"
+    });
 }
-Object["defineProperty"]($$RSC_SERVER_CACHE_wrapped, "name", {
-    value: "wrapped"
-});
 export { $$RSC_SERVER_CACHE_wrapped as wrapped };
 let $$RSC_SERVER_CACHE_default = Layout;
 if (typeof Layout === "function") {
@@ -73,10 +73,10 @@ if (typeof Layout === "function") {
         return $$cache__("default", "ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d", 0, Layout, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_default, "ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d", null);
+    Object["defineProperty"]($$RSC_SERVER_CACHE_default, "name", {
+        value: "default"
+    });
 }
-Object["defineProperty"]($$RSC_SERVER_CACHE_default, "name", {
-    value: "default"
-});
 export default $$RSC_SERVER_CACHE_default;
 let $$RSC_SERVER_CACHE_Other = Other;
 if (typeof Other === "function") {
@@ -84,10 +84,10 @@ if (typeof Other === "function") {
         return $$cache__("default", "ff1acff246876a467753785a92d1f95ac6fe32c9b9", 0, Other, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_Other, "ff1acff246876a467753785a92d1f95ac6fe32c9b9", null);
+    Object["defineProperty"]($$RSC_SERVER_CACHE_Other, "name", {
+        value: "Other"
+    });
 }
-Object["defineProperty"]($$RSC_SERVER_CACHE_Other, "name", {
-    value: "Other"
-});
 export { $$RSC_SERVER_CACHE_Other as Other };
 let $$RSC_SERVER_CACHE_getCachedStuff = getCachedStuff;
 if (typeof getCachedStuff === "function") {
@@ -95,8 +95,8 @@ if (typeof getCachedStuff === "function") {
         return $$cache__("default", "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", 0, getCachedStuff, arguments);
     });
     registerServerReference($$RSC_SERVER_CACHE_getCachedStuff, "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", null);
+    Object["defineProperty"]($$RSC_SERVER_CACHE_getCachedStuff, "name", {
+        value: "getCachedStuff"
+    });
 }
-Object["defineProperty"]($$RSC_SERVER_CACHE_getCachedStuff, "name", {
-    value: "getCachedStuff"
-});
 export { $$RSC_SERVER_CACHE_getCachedStuff as getCachedStuff };
