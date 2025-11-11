@@ -1480,34 +1480,53 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             }
                             Decl::Var(var) => {
                                 // export const foo = 1
-                                // Collect idents and check if their init needs runtime wrapper
+                                // Collect all idents from var declarators (including destructuring
+                                // patterns)
                                 let mut has_export_needing_wrapper = false;
+
                                 for decl in &var.decls {
-                                    if let Pat::Ident(ident_pat) = &decl.name {
-                                        // Determine if this export needs a runtime wrapper in cache
-                                        // files
-                                        let needs_cache_runtime_wrapper = if let Some(init) =
-                                            &decl.init
-                                        {
-                                            match &**init {
-                                                // Known functions - no runtime wrapper needed
-                                                Expr::Arrow(_) | Expr::Fn(_) => false,
-                                                // Definitely not functions - skip entirely
-                                                Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => {
+                                    // First, extract all identifiers from the pattern
+                                    let mut idents: Vec<Ident> = Vec::new();
+                                    collect_idents_in_pat(&decl.name, &mut idents);
+
+                                    // For each identifier, determine if it needs runtime wrapping
+                                    for ident in idents {
+                                        let needs_cache_runtime_wrapper = if in_cache_file {
+                                            // Only check init expression for simple Pat::Ident
+                                            // patterns
+                                            if let Pat::Ident(ident_pat) = &decl.name {
+                                                if let Some(init) = &decl.init {
+                                                    match &**init {
+                                                        // Known functions - no runtime wrapper
+                                                        // needed
+                                                        Expr::Arrow(_) | Expr::Fn(_) => false,
+                                                        // Definitely not functions - skip entirely
+                                                        Expr::Object(_)
+                                                        | Expr::Array(_)
+                                                        | Expr::Lit(_) => false,
+                                                        // Unknown/might be function - needs runtime
+                                                        // check
+                                                        _ => true,
+                                                    }
+                                                } else {
                                                     false
                                                 }
-                                                // Unknown/might be function - needs runtime check
-                                                _ => true,
+                                            } else {
+                                                // Destructuring patterns - can't determine if
+                                                // function at compile time
+                                                // so they need runtime check
+                                                true
                                             }
                                         } else {
+                                            // Server actions don't need runtime wrappers
                                             false
                                         };
 
                                         self.exported_idents.push((
-                                            ident_pat.id.clone(),
-                                            ident_pat.id.sym.clone(),
+                                            ident.clone(),
+                                            ident.sym.clone(),
                                             self.generate_server_reference_id(
-                                                ident_pat.id.sym.as_ref(),
+                                                ident.sym.as_ref(),
                                                 in_cache_file,
                                                 None,
                                             ),
