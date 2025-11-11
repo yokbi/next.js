@@ -1424,6 +1424,26 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                     ModuleItem::Stmt(Stmt::Decl(Decl::Fn(_fn_decl))) => {
                         // Function declarations are known functions - don't need wrapper
                     }
+                    ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) => {
+                        // Track all imports - we don't know if they're functions, so they need
+                        // wrappers if they end up getting re-exported
+                        for spec in &import_decl.specifiers {
+                            match spec {
+                                ImportSpecifier::Named(named) => {
+                                    self.local_ids_that_may_need_cache_runtime_wrapper
+                                        .insert(named.local.to_id());
+                                }
+                                ImportSpecifier::Default(default) => {
+                                    self.local_ids_that_may_need_cache_runtime_wrapper
+                                        .insert(default.local.to_id());
+                                }
+                                ImportSpecifier::Namespace(ns) => {
+                                    self.local_ids_that_may_need_cache_runtime_wrapper
+                                        .insert(ns.local.to_id());
+                                }
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -1584,10 +1604,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     }) = spec
                                     {
                                         if !*is_type_only {
-                                            // Check if this identifier may need a runtime wrapper
-                                            let needs_cache_runtime_wrapper = self
-                                                .local_ids_that_may_need_cache_runtime_wrapper
-                                                .contains(&ident.to_id());
+                                            let needs_cache_runtime_wrapper = in_cache_file
+                                                && self
+                                                    .local_ids_that_may_need_cache_runtime_wrapper
+                                                    .contains(&ident.to_id());
 
                                             if let Some(export_name) = exported {
                                                 if let ModuleExportName::Ident(Ident {
@@ -1789,10 +1809,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             }
                             Expr::Ident(ident) => {
                                 // export default foo
-                                // Check if this identifier may need a runtime wrapper
-                                let needs_cache_runtime_wrapper = self
-                                    .local_ids_that_may_need_cache_runtime_wrapper
-                                    .contains(&ident.to_id());
+                                let needs_cache_runtime_wrapper = in_cache_file
+                                    && self
+                                        .local_ids_that_may_need_cache_runtime_wrapper
+                                        .contains(&ident.to_id());
                                 self.exported_idents.push((
                                     ident.clone(),
                                     atom!("default"),
@@ -1804,10 +1824,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     needs_cache_runtime_wrapper,
                                 ));
 
-                                // If we're in a cache file and this needs a wrapper,
-                                // remove the export statement (we'll generate a new one with
-                                // wrapper)
-                                if in_cache_file && needs_cache_runtime_wrapper {
+                                // If this needs a cache runtime wrapper, remove the export
+                                // statement (we'll generate a new one with wrapper)
+                                if needs_cache_runtime_wrapper {
                                     continue;
                                 }
                             }

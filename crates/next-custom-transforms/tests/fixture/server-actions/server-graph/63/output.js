@@ -1,4 +1,4 @@
-/* __next_internal_action_entry_do_not_use__ {"803128060c414d59f8552e4788b846c0d2b7f74743":"$$RSC_SERVER_CACHE_0","ff1acff246876a467753785a92d1f95ac6fe32c9b9":"Other","ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb":"aliased","ff438bb59117ff1af890c80ca3e39d9e888fc93033":"wrapped","ff84effee663e5ce4e0948b55df129a8df904c67aa":"Sync","ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d":"default"} */ import { registerServerReference } from "private-next-rsc-server-reference";
+/* __next_internal_action_entry_do_not_use__ {"803128060c414d59f8552e4788b846c0d2b7f74743":"$$RSC_SERVER_CACHE_0","ff1acff246876a467753785a92d1f95ac6fe32c9b9":"Other","ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb":"aliased","ff438bb59117ff1af890c80ca3e39d9e888fc93033":"wrapped","ff84effee663e5ce4e0948b55df129a8df904c67aa":"Sync","ff85cca0cc8341c33fcca0288c72a60d67cbda2eee":"getCachedStuff","ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d":"default"} */ import { registerServerReference } from "private-next-rsc-server-reference";
 import { encryptActionBoundArgs, decryptActionBoundArgs } from "private-next-rsc-action-encryption";
 import { cache as $$cache__ } from "private-next-rsc-cache-wrapper";
 import { cache as $$reactCache__ } from "react";
@@ -78,3 +78,14 @@ Object["defineProperty"]($$RSC_SERVER_CACHE_Other, "name", {
     value: "Other"
 });
 export { $$RSC_SERVER_CACHE_Other as Other };
+let $$RSC_SERVER_CACHE_getCachedStuff = getCachedStuff;
+if (typeof getCachedStuff === "function") {
+    $$RSC_SERVER_CACHE_getCachedStuff = $$reactCache__(function getCachedStuff1() {
+        return $$cache__("default", "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", 0, getCachedStuff, arguments);
+    });
+    registerServerReference($$RSC_SERVER_CACHE_getCachedStuff, "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", null);
+}
+Object["defineProperty"]($$RSC_SERVER_CACHE_getCachedStuff, "name", {
+    value: "getCachedStuff"
+});
+export { $$RSC_SERVER_CACHE_getCachedStuff as getCachedStuff };
