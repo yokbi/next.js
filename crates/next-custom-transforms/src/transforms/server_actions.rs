@@ -2185,7 +2185,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             span: DUMMY_SP,
                             kind: VarDeclKind::Let,
                             decls: vec![VarDeclarator {
-                                span: DUMMY_SP,
+                                span: ident.span,
                                 name: Pat::Ident(wrapper_ident.clone().into()),
                                 init: Some(Box::new(Expr::Ident(ident.clone()))),
                                 definite: false,
@@ -2248,7 +2248,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                                 span: DUMMY_SP,
                                                                 arg: Some(Box::new(Expr::Call(
                                                                     CallExpr {
-                                                                        span: DUMMY_SP,
+                                                                        span: ident.span,
                                                                         callee: Callee::Expr(
                                                                             Box::new(Expr::Ident(
                                                                                 quote_ident!(
@@ -2302,6 +2302,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                                 ))),
                                                             })],
                                                         }),
+                                                        span: ident.span,
                                                         ..Default::default()
                                                     }),
                                                 })),
@@ -2315,7 +2316,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     expr: Box::new(annotate_ident_as_server_reference(
                                         wrapper_ident.clone(),
                                         ref_id.clone(),
-                                        DUMMY_SP,
+                                        ident.span,
                                     )),
                                 }),
                             ],
