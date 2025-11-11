@@ -1615,10 +1615,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         .collect();
 
                                     if !import_specs.is_empty() {
-                                        // Add import statement
+                                        // Add import statement, preserving the span (and comments)
                                         self.extra_items.push(ModuleItem::ModuleDecl(
                                             ModuleDecl::Import(ImportDecl {
-                                                span: DUMMY_SP,
+                                                span: named.span,
                                                 specifiers: import_specs,
                                                 src: src.clone(),
                                                 type_only: false,

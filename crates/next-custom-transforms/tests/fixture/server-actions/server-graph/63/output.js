@@ -16,6 +16,7 @@ Object["defineProperty"]($$RSC_SERVER_CACHE_0, "name", {
     value: "getCachedData"
 });
 export const getCachedData = $$RSC_SERVER_CACHE_0;
+// @ts-ignore
 import { getData } from './data';
 const aliased = getCachedStuff;
 const Layout = wrap(async ()=><div>Layout</div>);
