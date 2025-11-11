@@ -1,12 +1,14 @@
-/* __next_internal_action_entry_do_not_use__ {"803128060c414d59f8552e4788b846c0d2b7f74743":"$$RSC_SERVER_CACHE_0","ff1acff246876a467753785a92d1f95ac6fe32c9b9":"Other","ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb":"aliased","ff438bb59117ff1af890c80ca3e39d9e888fc93033":"wrapped","ff84effee663e5ce4e0948b55df129a8df904c67aa":"Sync","ff85cca0cc8341c33fcca0288c72a60d67cbda2eee":"getCachedStuff","ff8fa22f08e492db15701f58a1458cc4ebf782f855":"getData","ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d":"default"} */ import { registerServerReference } from "private-next-rsc-server-reference";
+/* __next_internal_action_entry_do_not_use__ {"803128060c414d59f8552e4788b846c0d2b7f74743":"$$RSC_SERVER_CACHE_0","ff1acff246876a467753785a92d1f95ac6fe32c9b9":"Other","ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb":"aliased","ff438bb59117ff1af890c80ca3e39d9e888fc93033":"wrapped","ff84effee663e5ce4e0948b55df129a8df904c67aa":"Sync","ff8fa22f08e492db15701f58a1458cc4ebf782f855":"getData","ff980f8c891ae27674b86a4804d306bdb3065c2e4f":"getStuff","ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d":"default"} */ import { registerServerReference } from "private-next-rsc-server-reference";
 import { encryptActionBoundArgs, decryptActionBoundArgs } from "private-next-rsc-action-encryption";
 import { cache as $$cache__ } from "private-next-rsc-cache-wrapper";
 import { cache as $$reactCache__ } from "react";
 // @ts-ignore
-import { getCachedStuff, wrap } from './foo';
+import { getStuff, wrap } from './foo';
 const $$RSC_SERVER_CACHE_0_INNER = async function getCachedData() {
-    // This one already worked before.
-    return getCachedStuff();
+    // This is not using the wrapped version of getStuff, as we're only
+    // runtime-wrapping what flows out of the module, not into it. Would one
+    // expect this to be cached?
+    return getStuff();
 };
 export var $$RSC_SERVER_CACHE_0 = $$reactCache__(function getCachedData() {
     return $$cache__("default", "803128060c414d59f8552e4788b846c0d2b7f74743", 0, $$RSC_SERVER_CACHE_0_INNER, arguments);
@@ -18,7 +20,7 @@ Object["defineProperty"]($$RSC_SERVER_CACHE_0, "name", {
 export const getCachedData = $$RSC_SERVER_CACHE_0;
 // @ts-ignore
 import { getData } from './data';
-const aliased = getCachedStuff;
+const aliased = getStuff;
 const Layout = wrap(async ()=><div>Layout</div>);
 const Other = wrap(async ()=><div>Other</div>);
 const Sync = wrap(()=><div>Sync</div>);
@@ -89,14 +91,14 @@ if (typeof Other === "function") {
     });
 }
 export { $$RSC_SERVER_CACHE_Other as Other };
-let $$RSC_SERVER_CACHE_getCachedStuff = getCachedStuff;
-if (typeof getCachedStuff === "function") {
-    $$RSC_SERVER_CACHE_getCachedStuff = $$reactCache__(function getCachedStuff1() {
-        return $$cache__("default", "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", 0, getCachedStuff, arguments);
+let $$RSC_SERVER_CACHE_getStuff = getStuff;
+if (typeof getStuff === "function") {
+    $$RSC_SERVER_CACHE_getStuff = $$reactCache__(function getStuff1() {
+        return $$cache__("default", "ff980f8c891ae27674b86a4804d306bdb3065c2e4f", 0, getStuff, arguments);
     });
-    registerServerReference($$RSC_SERVER_CACHE_getCachedStuff, "ff85cca0cc8341c33fcca0288c72a60d67cbda2eee", null);
-    Object["defineProperty"]($$RSC_SERVER_CACHE_getCachedStuff, "name", {
-        value: "getCachedStuff"
+    registerServerReference($$RSC_SERVER_CACHE_getStuff, "ff980f8c891ae27674b86a4804d306bdb3065c2e4f", null);
+    Object["defineProperty"]($$RSC_SERVER_CACHE_getStuff, "name", {
+        value: "getStuff"
     });
 }
-export { $$RSC_SERVER_CACHE_getCachedStuff as getCachedStuff };
+export { $$RSC_SERVER_CACHE_getStuff as getStuff };
