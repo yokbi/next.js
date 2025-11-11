@@ -1473,7 +1473,8 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                             is_cache,
                                             Some(&f.function.params),
                                         ),
-                                        true, // export function - always a function
+                                        false, /* export function - known function, no runtime
+                                                * wrapper needed */
                                     ));
                                 }
                             }
@@ -1664,7 +1665,8 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         ident.clone(),
                                         atom!("default"),
                                         ref_id,
-                                        true, // function declaration
+                                        false, /* function declaration - known function, no
+                                                * wrapper needed */
                                     ));
                                 } else {
                                     // export default function() {}
@@ -1683,7 +1685,8 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         new_ident.clone(),
                                         atom!("default"),
                                         ref_id,
-                                        true, // function expression
+                                        false, /* function expression - known function, no
+                                                * wrapper needed */
                                     ));
 
                                     assign_name_to_ident(
@@ -1750,7 +1753,8 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                     .collect(),
                                             ),
                                         ),
-                                        true, // arrow expression
+                                        false, /* arrow expression - known function, no wrapper
+                                                * needed */
                                     ));
 
                                     create_var_declarator(&new_ident, &mut self.extra_items);
@@ -1804,7 +1808,8 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         in_cache_file,
                                         None,
                                     ),
-                                    false, // call expression - unknown if function at compile time
+                                    true, /* call expression - might be function, needs runtime
+                                           * wrapper */
                                 ));
 
                                 create_var_declarator(&new_ident, &mut self.extra_items);
