@@ -1417,15 +1417,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                         for decl in &var_decl.decls {
                             if let Pat::Ident(ident_pat) = &decl.name {
                                 if let Some(init) = &decl.init {
-                                    let may_need_wrapper = match &**init {
-                                        // Known functions - don't need wrapper
-                                        Expr::Arrow(_) | Expr::Fn(_) => false,
-                                        // Definitely not functions - don't need wrapper
-                                        Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => false,
-                                        // Unknown/might be function - needs runtime check
-                                        _ => true,
-                                    };
-                                    if may_need_wrapper {
+                                    if may_need_cache_runtime_wrapper(init) {
                                         self.local_ids_that_may_need_cache_runtime_wrapper
                                             .insert(ident_pat.id.to_id());
                                     }
@@ -1520,29 +1512,29 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     collect_idents_in_pat(&decl.name, &mut idents);
 
                                     for ident in idents {
-                                        let needs_cache_runtime_wrapper = if in_cache_file {
-                                            if let Pat::Ident(_) = &decl.name {
-                                                if let Some(init) = &decl.init {
-                                                    match &**init {
-                                                        // Known functions don't need wrappers
-                                                        Expr::Arrow(_) | Expr::Fn(_) => false,
-                                                        // Known non-functions don't need wrappers
-                                                        Expr::Object(_)
-                                                        | Expr::Array(_)
-                                                        | Expr::Lit(_) => false,
-                                                        // Everything else needs runtime check
-                                                        _ => true,
-                                                    }
-                                                } else {
-                                                    false
-                                                }
+                                        let needs_cache_runtime_wrapper = if !in_cache_file {
+                                            false
+                                        } else {
+                                            // Check pre-pass tracking set (imports, re-exported
+                                            // locals)
+                                            if self
+                                                .local_ids_that_may_need_cache_runtime_wrapper
+                                                .contains(&ident.to_id())
+                                            {
+                                                true
+                                            } else if let Pat::Ident(_) = &decl.name {
+                                                // Check current declaration's init expression
+                                                decl.init
+                                                    .as_ref()
+                                                    .map(|init| {
+                                                        may_need_cache_runtime_wrapper(init)
+                                                    })
+                                                    .unwrap_or(false)
                                             } else {
                                                 // Destructuring: can't determine type at compile
                                                 // time
                                                 true
                                             }
-                                        } else {
-                                            false
                                         };
 
                                         self.exported_idents.push((
@@ -2707,7 +2699,21 @@ fn retain_names_from_declared_idents(
     *child_names = retained_names;
 }
 
-/// Creates a cache wrapper expression: $$reactCache__(function name() { return $$cache__(...) })
+/// Returns true if the expression may need a cache runtime wrapper.
+/// Known functions and known non-functions return false.
+fn may_need_cache_runtime_wrapper(expr: &Expr) -> bool {
+    match expr {
+        // Known functions - don't need wrapper
+        Expr::Arrow(_) | Expr::Fn(_) => false,
+        // Known non-functions - don't need wrapper
+        Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => false,
+        // Unknown/might be function - needs runtime check
+        _ => true,
+    }
+}
+
+/// Creates a cache wrapper expression:
+/// $$reactCache__(function name() { return $$cache__(...) })
 fn create_cache_wrapper(
     cache_kind: &str,
     reference_id: Atom,
