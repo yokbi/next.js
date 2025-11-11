@@ -830,7 +830,12 @@ async fn apply_vendored_react_aliases_server(
     next_config: Vc<NextConfig>,
 ) -> Result<()> {
     let taint = *next_config.enable_taint().await?;
-    let react_channel = if taint { "-experimental" } else { "" };
+    let transition_indicator = *next_config.enable_transition_indicator().await?;
+    let react_channel = if taint || transition_indicator {
+        "-experimental"
+    } else {
+        ""
+    };
     let react_condition = if ty.should_use_react_server_condition() {
         "server"
     } else {
