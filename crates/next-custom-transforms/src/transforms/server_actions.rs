@@ -2065,9 +2065,6 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                     }
 
                     // Generate the wrapper code
-                    let cache_ident = private_ident!("$$cache__");
-                    let react_cache_ident = private_ident!("$$reactCache__");
-
                     let name_value = if export_name == "default" {
                         atom!("default")
                     } else {
@@ -2127,7 +2124,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         right: Box::new(Expr::Call(CallExpr {
                                             span: DUMMY_SP,
                                             callee: Callee::Expr(Box::new(Expr::Ident(
-                                                react_cache_ident,
+                                                quote_ident!("$$reactCache__").into(),
                                             ))),
                                             args: vec![ExprOrSpread {
                                                 spread: None,
@@ -2153,7 +2150,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                                         span: DUMMY_SP,
                                                                         callee: Callee::Expr(
                                                                             Box::new(Expr::Ident(
-                                                                                cache_ident,
+                                                                                quote_ident!(
+                                                                                    "$$cache__"
+                                                                                )
+                                                                                .into(),
                                                                             )),
                                                                         ),
                                                                         args: vec![
