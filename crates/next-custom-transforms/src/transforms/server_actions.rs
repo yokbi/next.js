@@ -2168,7 +2168,6 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                     // let $$RSC_SERVER_CACHE_exportName = exportName;
                     self.extra_items
                         .push(ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
-                            span: DUMMY_SP,
                             kind: VarDeclKind::Let,
                             decls: vec![VarDeclarator {
                                 span: ident.span,
@@ -2181,7 +2180,6 @@ impl<C: Comments> VisitMut for ServerActions<C> {
 
                     // if (typeof ident === "function") { $$RSC_SERVER_CACHE_exportName = wrapper }
                     self.extra_items.push(ModuleItem::Stmt(Stmt::If(IfStmt {
-                        span: DUMMY_SP,
                         test: Box::new(Expr::Bin(BinExpr {
                             span: DUMMY_SP,
                             op: op!("==="),
@@ -2197,8 +2195,6 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             }))),
                         })),
                         cons: Box::new(Stmt::Block(BlockStmt {
-                            span: DUMMY_SP,
-                            ctxt: Default::default(),
                             stmts: vec![
                                 Stmt::Expr(ExprStmt {
                                     span: DUMMY_SP,
@@ -2236,8 +2232,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                 }),
                                 assign_name_to_ident(&wrapper_ident, &name_value),
                             ],
+                            ..Default::default()
                         })),
-                        alt: None,
+                        ..Default::default()
                     })));
 
                     // Generate export with rename: export { $$RSC_SERVER_CACHE_name as name }
@@ -2745,7 +2742,6 @@ fn create_cache_wrapper(
         ident: fn_ident,
         function: Box::new(Function {
             body: Some(BlockStmt {
-                span: DUMMY_SP,
                 stmts: vec![Stmt::Return(ReturnStmt {
                     span: DUMMY_SP,
                     arg: Some(Box::new(Expr::Call(cache_call))),
@@ -2786,7 +2782,6 @@ fn create_and_hoist_cache_function(
             params,
             body,
             span: original_span,
-            is_generator: false,
             is_async: true,
             ..Default::default()
         }),
@@ -2795,7 +2790,6 @@ fn create_and_hoist_cache_function(
     hoisted_extra_items.push(ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
         span: original_span,
         kind: VarDeclKind::Const,
-        declare: false,
         decls: vec![VarDeclarator {
             span: original_span,
             name: Pat::Ident(BindingIdent {
