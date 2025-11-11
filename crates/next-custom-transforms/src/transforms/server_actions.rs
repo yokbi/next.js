@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{hash_map, BTreeMap},
+    collections::{BTreeMap, hash_map},
     convert::{TryFrom, TryInto},
     mem::{replace, take},
     path::{Path, PathBuf},
@@ -16,23 +16,23 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use swc_core::{
-    atoms::{atom, Atom},
+    atoms::{Atom, atom},
     common::{
+        BytePos, DUMMY_SP, FileName, Mark, SourceMap, Span, SyntaxContext,
         comments::{Comment, CommentKind, Comments, SingleThreadedComments},
         errors::HANDLER,
-        source_map::{SourceMapGenConfig, PURE_SP},
+        source_map::{PURE_SP, SourceMapGenConfig},
         util::take::Take,
-        BytePos, FileName, Mark, SourceMap, Span, SyntaxContext, DUMMY_SP,
     },
     ecma::{
         ast::*,
-        codegen::{self, text_writer::JsWriter, Emitter},
-        utils::{private_ident, quote_ident, ExprFactory},
-        visit::{noop_visit_mut_type, visit_mut_pass, VisitMut, VisitMutWith},
+        codegen::{self, Emitter, text_writer::JsWriter},
+        utils::{ExprFactory, private_ident, quote_ident},
+        visit::{VisitMut, VisitMutWith, noop_visit_mut_type, visit_mut_pass},
     },
     quote,
 };
-use turbo_rcstr::{rcstr, RcStr};
+use turbo_rcstr::{RcStr, rcstr};
 
 use crate::FxIndexMap;
 
@@ -1320,7 +1320,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
             }
         }
 
+        let old_in_exported_expr = replace(&mut self.in_exported_expr, false);
         n.visit_mut_children_with(self);
+        self.in_exported_expr = old_in_exported_expr;
     }
 
     fn visit_mut_callee(&mut self, n: &mut Callee) {
@@ -1419,7 +1421,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                 let (is_action_fn, is_cache_fn) =
                                     has_body_directive(&f.function.body);
 
-                                let ref_id = if is_action_fn {
+                                let is_cache = if is_action_fn {
                                     false
                                 } else if is_cache_fn {
                                     true
@@ -1438,7 +1440,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         f.ident.sym.clone(),
                                         self.generate_server_reference_id(
                                             f.ident.sym.as_ref(),
-                                            ref_id,
+                                            is_cache,
                                             Some(&f.function.params),
                                         ),
                                     ));
