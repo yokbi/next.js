@@ -1,11 +1,11 @@
 'use cache'
 
 // @ts-ignore
-import { getStuff, wrap } from './foo'
+import { getStuff, wrap, type Stuff } from './foo'
 // @ts-ignore
-export { getData } from './data'
+export { getData, type Data } from './data'
 
-export const getCachedData = async () => {
+export const getCachedData = async (): Stuff => {
   // This is not using the wrapped version of getStuff, as we're only
   // runtime-wrapping what flows out of the module, not into it. Would one
   // expect this to be cached?
