@@ -185,6 +185,7 @@ pub fn server_actions<C: Comments>(
 
         arrow_or_fn_expr_ident: None,
         exported_local_ids: FxHashSet::default(),
+        local_arrow_or_fn_ids: FxHashSet::default(),
 
         use_cache_telemetry_tracker,
     })
@@ -243,6 +244,7 @@ struct ServerActions<C: Comments> {
         /* ident */ Ident,
         /* name */ Atom,
         /* id */ Atom,
+        /* is_arrow_or_fn */ bool,
     )>,
 
     annotations: Vec<Stmt>,
@@ -254,6 +256,8 @@ struct ServerActions<C: Comments> {
 
     arrow_or_fn_expr_ident: Option<Ident>,
     exported_local_ids: FxHashSet<Id>,
+    /// Track which local IDs are arrow/fn expressions (collected during pre-pass)
+    local_arrow_or_fn_ids: FxHashSet<Id>,
 
     use_cache_telemetry_tracker: Rc<RefCell<FxHashMap<String, usize>>>,
 }
@@ -1394,6 +1398,22 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             }
                         }
                     }
+                    ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => {
+                        // Track which const declarations are arrow/fn expressions
+                        for decl in &var_decl.decls {
+                            if let Pat::Ident(ident_pat) = &decl.name {
+                                if let Some(init) = &decl.init {
+                                    if matches!(&**init, Expr::Arrow(_) | Expr::Fn(_)) {
+                                        self.local_arrow_or_fn_ids.insert(ident_pat.id.to_id());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    ModuleItem::Stmt(Stmt::Decl(Decl::Fn(fn_decl))) => {
+                        // Track function declarations as well
+                        self.local_arrow_or_fn_ids.insert(fn_decl.ident.to_id());
+                    }
                     _ => {}
                 }
             }
@@ -1443,24 +1463,31 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                             is_cache,
                                             Some(&f.function.params),
                                         ),
+                                        true, // export function - always a function
                                     ));
                                 }
                             }
                             Decl::Var(var) => {
                                 // export const foo = 1
-                                let mut idents: Vec<Ident> = Vec::new();
-                                collect_idents_in_var_decls(&var.decls, &mut idents);
+                                // Collect idents and check if their init is arrow/fn
+                                for decl in &var.decls {
+                                    if let Pat::Ident(ident_pat) = &decl.name {
+                                        let is_arrow_or_fn =
+                                            decl.init.as_ref().map_or(false, |init| {
+                                                matches!(&**init, Expr::Arrow(_) | Expr::Fn(_))
+                                            });
 
-                                for ident in &idents {
-                                    self.exported_idents.push((
-                                        ident.clone(),
-                                        ident.sym.clone(),
-                                        self.generate_server_reference_id(
-                                            ident.sym.as_ref(),
-                                            in_cache_file,
-                                            None,
-                                        ),
-                                    ));
+                                        self.exported_idents.push((
+                                            ident_pat.id.clone(),
+                                            ident_pat.id.sym.clone(),
+                                            self.generate_server_reference_id(
+                                                ident_pat.id.sym.as_ref(),
+                                                in_cache_file,
+                                                None,
+                                            ),
+                                            is_arrow_or_fn,
+                                        ));
+                                    }
                                 }
 
                                 for decl in &mut var.decls {
@@ -1501,6 +1528,10 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     }) = spec
                                     {
                                         if !*is_type_only {
+                                            // Check if this identifier is an arrow/fn from pre-pass
+                                            let is_arrow_or_fn =
+                                                self.local_arrow_or_fn_ids.contains(&ident.to_id());
+
                                             if let Some(export_name) = exported {
                                                 if let ModuleExportName::Ident(Ident {
                                                     sym, ..
@@ -1515,6 +1546,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                             in_cache_file,
                                                             None,
                                                         ),
+                                                        is_arrow_or_fn,
                                                     ));
                                                 } else if let ModuleExportName::Str(str) =
                                                     export_name
@@ -1528,6 +1560,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                             in_cache_file,
                                                             None,
                                                         ),
+                                                        is_arrow_or_fn,
                                                     ));
                                                 }
                                             } else {
@@ -1540,6 +1573,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                         in_cache_file,
                                                         None,
                                                     ),
+                                                    is_arrow_or_fn,
                                                 ));
                                             }
                                         }
@@ -1583,6 +1617,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         ident.clone(),
                                         atom!("default"),
                                         ref_id,
+                                        true, // function declaration
                                     ));
                                 } else {
                                     // export default function() {}
@@ -1601,6 +1636,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         new_ident.clone(),
                                         atom!("default"),
                                         ref_id,
+                                        true, // function expression
                                     ));
 
                                     assign_name_to_ident(
@@ -1667,6 +1703,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                                     .collect(),
                                             ),
                                         ),
+                                        true, // arrow expression
                                     ));
 
                                     create_var_declarator(&new_ident, &mut self.extra_items);
@@ -1682,6 +1719,9 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                             }
                             Expr::Ident(ident) => {
                                 // export default foo
+                                // Check if this identifier is a known arrow/fn from pre-pass
+                                let is_arrow_or_fn =
+                                    self.local_arrow_or_fn_ids.contains(&ident.to_id());
                                 self.exported_idents.push((
                                     ident.clone(),
                                     atom!("default"),
@@ -1690,6 +1730,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         in_cache_file,
                                         None,
                                     ),
+                                    is_arrow_or_fn,
                                 ));
                             }
                             Expr::Call(call) => {
@@ -1708,6 +1749,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                         in_cache_file,
                                         None,
                                     ),
+                                    false, // call expression - unknown if function at compile time
                                 ));
 
                                 create_var_declarator(&new_ident, &mut self.extra_items);
@@ -1838,7 +1880,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
 
         // If it's a "use server" or a "use cache" file, all exports need to be annotated.
         if should_track_exports {
-            for (ident, export_name, ref_id) in self.exported_idents.iter() {
+            for (ident, export_name, ref_id, is_arrow_or_fn) in self.exported_idents.iter() {
                 if !self.config.is_react_server_layer {
                     if export_name == "default" {
                         let export_expr = ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(
@@ -1922,7 +1964,214 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                         client_layer_exports
                             .insert(export_name.clone(), (export_expr, ref_id.clone()));
                     }
-                } else if !in_cache_file {
+                } else if in_cache_file {
+                    // For "use cache" files, generate runtime-checked wrappers for exports
+                    // that might not be functions at compile time (like re-exported identifiers
+                    // or values returned from HOCs).
+                    // We generate: let x = orig; if (typeof orig === "function") { x = wrapper(...)
+                    // }
+                    //
+                    // Skip exports that are known to be arrow/fn at compile time
+                    if *is_arrow_or_fn {
+                        continue;
+                    }
+
+                    // Generate the wrapper code
+                    let cache_ident = private_ident!("$$cache__");
+                    let react_cache_ident = private_ident!("$$reactCache__");
+
+                    let name_value = if export_name == "default" {
+                        atom!("default")
+                    } else {
+                        export_name.clone()
+                    };
+
+                    // Generate wrapper ident: $$RSC_SERVER_CACHE_exportName
+                    let wrapper_ident = Ident::new(
+                        format!("$$RSC_SERVER_CACHE_{}", export_name).into(),
+                        ident.span,
+                        self.private_ctxt,
+                    );
+
+                    // let $$RSC_SERVER_CACHE_exportName = ident;
+                    self.extra_items
+                        .push(ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+                            span: DUMMY_SP,
+                            kind: VarDeclKind::Let,
+                            decls: vec![VarDeclarator {
+                                span: DUMMY_SP,
+                                name: Pat::Ident(wrapper_ident.clone().into()),
+                                init: Some(Box::new(Expr::Ident(ident.clone()))),
+                                definite: false,
+                            }],
+                            ..Default::default()
+                        })))));
+
+                    // if (typeof ident === "function") { $$RSC_SERVER_CACHE_exportName = wrapper }
+                    self.extra_items.push(ModuleItem::Stmt(Stmt::If(IfStmt {
+                        span: DUMMY_SP,
+                        test: Box::new(Expr::Bin(BinExpr {
+                            span: DUMMY_SP,
+                            op: op!("==="),
+                            left: Box::new(Expr::Unary(UnaryExpr {
+                                span: DUMMY_SP,
+                                op: op!("typeof"),
+                                arg: Box::new(Expr::Ident(ident.clone())),
+                            })),
+                            right: Box::new(Expr::Lit(Lit::Str(Str {
+                                span: DUMMY_SP,
+                                value: atom!("function"),
+                                raw: None,
+                            }))),
+                        })),
+                        cons: Box::new(Stmt::Block(BlockStmt {
+                            span: DUMMY_SP,
+                            ctxt: Default::default(),
+                            stmts: vec![
+                                Stmt::Expr(ExprStmt {
+                                    span: DUMMY_SP,
+                                    expr: Box::new(Expr::Assign(AssignExpr {
+                                        span: DUMMY_SP,
+                                        op: op!("="),
+                                        left: AssignTarget::Simple(SimpleAssignTarget::Ident(
+                                            wrapper_ident.clone().into(),
+                                        )),
+                                        right: Box::new(Expr::Call(CallExpr {
+                                            span: DUMMY_SP,
+                                            callee: Callee::Expr(Box::new(Expr::Ident(
+                                                react_cache_ident,
+                                            ))),
+                                            args: vec![ExprOrSpread {
+                                                spread: None,
+                                                expr: Box::new(Expr::Fn(FnExpr {
+                                                    ident: if name_value == "default" {
+                                                        None
+                                                    } else {
+                                                        Some(Ident::new(
+                                                            export_name.clone(),
+                                                            DUMMY_SP,
+                                                            Default::default(),
+                                                        ))
+                                                    },
+                                                    function: Box::new(Function {
+                                                        params: vec![],
+                                                        body: Some(BlockStmt {
+                                                            span: DUMMY_SP,
+                                                            ctxt: Default::default(),
+                                                            stmts: vec![Stmt::Return(ReturnStmt {
+                                                                span: DUMMY_SP,
+                                                                arg: Some(Box::new(Expr::Call(
+                                                                    CallExpr {
+                                                                        span: DUMMY_SP,
+                                                                        callee: Callee::Expr(
+                                                                            Box::new(Expr::Ident(
+                                                                                cache_ident,
+                                                                            )),
+                                                                        ),
+                                                                        args: vec![
+                                                                            Expr::Lit(Lit::Str(
+                                                                                Str {
+                                                                                    span: DUMMY_SP,
+                                                                                    value: atom!(
+                                                                                        "default"
+                                                                                    ),
+                                                                                    raw: None,
+                                                                                },
+                                                                            ))
+                                                                            .as_arg(),
+                                                                            Expr::Lit(Lit::Str(
+                                                                                Str {
+                                                                                    span: DUMMY_SP,
+                                                                                    value: ref_id
+                                                                                        .clone(),
+                                                                                    raw: None,
+                                                                                },
+                                                                            ))
+                                                                            .as_arg(),
+                                                                            Expr::Lit(Lit::Num(
+                                                                                Number {
+                                                                                    span: DUMMY_SP,
+                                                                                    value: 0.0,
+                                                                                    raw: None,
+                                                                                },
+                                                                            ))
+                                                                            .as_arg(),
+                                                                            Expr::Ident(
+                                                                                ident.clone(),
+                                                                            )
+                                                                            .as_arg(),
+                                                                            Box::new(Expr::Ident(
+                                                                                private_ident!(
+                                                                                    DUMMY_SP,
+                                                                                    "arguments"
+                                                                                ),
+                                                                            ))
+                                                                            .as_arg(),
+                                                                        ],
+                                                                        ..Default::default()
+                                                                    },
+                                                                ))),
+                                                            })],
+                                                        }),
+                                                        ..Default::default()
+                                                    }),
+                                                })),
+                                            }],
+                                            ..Default::default()
+                                        })),
+                                    })),
+                                }),
+                                Stmt::Expr(ExprStmt {
+                                    span: DUMMY_SP,
+                                    expr: Box::new(annotate_ident_as_server_reference(
+                                        wrapper_ident.clone(),
+                                        ref_id.clone(),
+                                        DUMMY_SP,
+                                    )),
+                                }),
+                            ],
+                        })),
+                        alt: None,
+                    })));
+
+                    // Assign name using helper
+                    assign_name_to_ident(&wrapper_ident, &name_value, &mut self.extra_items);
+
+                    // Generate export with rename: export { $$RSC_SERVER_CACHE_name as name }
+                    if export_name == "default" {
+                        self.extra_items.push(ModuleItem::ModuleDecl(
+                            ModuleDecl::ExportDefaultExpr(ExportDefaultExpr {
+                                span: DUMMY_SP,
+                                expr: Box::new(Expr::Ident(wrapper_ident)),
+                            }),
+                        ));
+                    } else {
+                        self.extra_items
+                            .push(ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(
+                                NamedExport {
+                                    span: DUMMY_SP,
+                                    specifiers: vec![ExportSpecifier::Named(
+                                        ExportNamedSpecifier {
+                                            span: DUMMY_SP,
+                                            orig: ModuleExportName::Ident(wrapper_ident.into()),
+                                            exported: Some(ModuleExportName::Ident(
+                                                Ident::new(
+                                                    export_name.clone(),
+                                                    DUMMY_SP,
+                                                    Default::default(),
+                                                )
+                                                .into(),
+                                            )),
+                                            is_type_only: false,
+                                        },
+                                    )],
+                                    src: None,
+                                    type_only: false,
+                                    with: None,
+                                },
+                            )));
+                    }
+                } else {
                     self.annotations.push(Stmt::Expr(ExprStmt {
                         span: DUMMY_SP,
                         expr: Box::new(annotate_ident_as_server_reference(
@@ -1976,7 +2225,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                                     elems: self
                                         .exported_idents
                                         .iter()
-                                        .map(|(ident, _, _)| {
+                                        .map(|(ident, _, _, _)| {
                                             Some(ExprOrSpread {
                                                 spread: None,
                                                 expr: Box::new(Expr::Ident(ident.clone())),
