@@ -3,7 +3,7 @@
 // @ts-ignore
 import { getCachedStuff, wrap } from './foo'
 // @ts-ignore
-// export { getData } from './data'
+export { getData } from './data'
 
 export const getCachedData = async () => {
   // This one already worked before.

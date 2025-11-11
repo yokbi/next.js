@@ -1584,8 +1584,86 @@ impl<C: Comments> VisitMut for ServerActions<C> {
                     }
                     ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named)) => {
                         if !named.type_only {
-                            if named.src.is_some() {
-                                if named.specifiers.iter().any(|s| match s {
+                            if let Some(src) = &named.src {
+                                // export { x } from './module'
+                                if in_cache_file {
+                                    // For cache files, transform to import + runtime wrapper
+                                    // Convert export specifiers to import specifiers
+                                    let import_specs: Vec<ImportSpecifier> = named
+                                        .specifiers
+                                        .iter()
+                                        .filter_map(|spec| {
+                                            if let ExportSpecifier::Named(ExportNamedSpecifier {
+                                                orig: ModuleExportName::Ident(orig),
+                                                is_type_only,
+                                                ..
+                                            }) = spec
+                                            {
+                                                if !*is_type_only {
+                                                    return Some(ImportSpecifier::Named(
+                                                        ImportNamedSpecifier {
+                                                            span: DUMMY_SP,
+                                                            local: orig.clone(),
+                                                            imported: None,
+                                                            is_type_only: false,
+                                                        },
+                                                    ));
+                                                }
+                                            }
+                                            None
+                                        })
+                                        .collect();
+
+                                    if !import_specs.is_empty() {
+                                        // Add import statement
+                                        self.extra_items.push(ModuleItem::ModuleDecl(
+                                            ModuleDecl::Import(ImportDecl {
+                                                span: DUMMY_SP,
+                                                specifiers: import_specs,
+                                                src: src.clone(),
+                                                type_only: false,
+                                                with: named.with.clone(),
+                                                phase: Default::default(),
+                                            }),
+                                        ));
+                                    }
+
+                                    // Collect exports for annotation loop
+                                    for spec in &named.specifiers {
+                                        if let ExportSpecifier::Named(ExportNamedSpecifier {
+                                            orig: ModuleExportName::Ident(orig),
+                                            exported,
+                                            is_type_only,
+                                            ..
+                                        }) = spec
+                                        {
+                                            if !*is_type_only {
+                                                let export_name =
+                                                    if let Some(ModuleExportName::Ident(exp)) =
+                                                        exported
+                                                    {
+                                                        exp.sym.clone()
+                                                    } else {
+                                                        orig.sym.clone()
+                                                    };
+
+                                                self.exported_idents.push((
+                                                    orig.clone(),
+                                                    export_name.clone(),
+                                                    self.generate_server_reference_id(
+                                                        export_name.as_ref(),
+                                                        in_cache_file,
+                                                        None,
+                                                    ),
+                                                    true, // needs runtime wrapper
+                                                ));
+                                            }
+                                        }
+                                    }
+
+                                    // Remove original export...from statement
+                                    continue;
+                                } else if named.specifiers.iter().any(|s| match s {
                                     ExportSpecifier::Namespace(_) | ExportSpecifier::Default(_) => {
                                         true
                                     }

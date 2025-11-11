@@ -1,4 +1,4 @@
-/* __next_internal_action_entry_do_not_use__ {"803128060c414d59f8552e4788b846c0d2b7f74743":"$$RSC_SERVER_CACHE_0","ff1acff246876a467753785a92d1f95ac6fe32c9b9":"Other","ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb":"aliased","ff438bb59117ff1af890c80ca3e39d9e888fc93033":"wrapped","ff84effee663e5ce4e0948b55df129a8df904c67aa":"Sync","ff85cca0cc8341c33fcca0288c72a60d67cbda2eee":"getCachedStuff","ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d":"default"} */ import { registerServerReference } from "private-next-rsc-server-reference";
+/* __next_internal_action_entry_do_not_use__ {"803128060c414d59f8552e4788b846c0d2b7f74743":"$$RSC_SERVER_CACHE_0","ff1acff246876a467753785a92d1f95ac6fe32c9b9":"Other","ff27fadf3eeb97c777cea9f14a407b5c0b42ac65bb":"aliased","ff438bb59117ff1af890c80ca3e39d9e888fc93033":"wrapped","ff84effee663e5ce4e0948b55df129a8df904c67aa":"Sync","ff85cca0cc8341c33fcca0288c72a60d67cbda2eee":"getCachedStuff","ff8fa22f08e492db15701f58a1458cc4ebf782f855":"getData","ffc18c215a6b7cdc64bf709f3a714ffdef1bf9651d":"default"} */ import { registerServerReference } from "private-next-rsc-server-reference";
 import { encryptActionBoundArgs, decryptActionBoundArgs } from "private-next-rsc-action-encryption";
 import { cache as $$cache__ } from "private-next-rsc-cache-wrapper";
 import { cache as $$reactCache__ } from "react";
@@ -15,14 +15,24 @@ registerServerReference($$RSC_SERVER_CACHE_0, "803128060c414d59f8552e4788b846c0d
 Object["defineProperty"]($$RSC_SERVER_CACHE_0, "name", {
     value: "getCachedData"
 });
-// @ts-ignore
-// export { getData } from './data'
 export const getCachedData = $$RSC_SERVER_CACHE_0;
+import { getData } from './data';
 const aliased = getCachedStuff;
 const Layout = wrap(async ()=><div>Layout</div>);
 const Other = wrap(async ()=><div>Other</div>);
 const Sync = wrap(()=><div>Sync</div>);
 const wrapped = wrap(async ()=>'foo', async ()=>'bar', async ()=>async ()=>'baz', ()=>'sync');
+let $$RSC_SERVER_CACHE_getData = getData;
+if (typeof getData === "function") {
+    $$RSC_SERVER_CACHE_getData = $$reactCache__(function getData() {
+        return $$cache__("default", "ff8fa22f08e492db15701f58a1458cc4ebf782f855", 0, getData, arguments);
+    });
+    registerServerReference($$RSC_SERVER_CACHE_getData, "ff8fa22f08e492db15701f58a1458cc4ebf782f855", null);
+}
+Object["defineProperty"]($$RSC_SERVER_CACHE_getData, "name", {
+    value: "getData"
+});
+export { $$RSC_SERVER_CACHE_getData as getData };
 let $$RSC_SERVER_CACHE_aliased = aliased;
 if (typeof aliased === "function") {
     $$RSC_SERVER_CACHE_aliased = $$reactCache__(function aliased1() {
