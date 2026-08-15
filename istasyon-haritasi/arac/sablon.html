@@ -240,15 +240,45 @@
   svg.harita path:hover { stroke: var(--metin-2); stroke-width: 1.4; }
 
   svg.harita path.secili {
-    fill: var(--vurgu) !important;
-    stroke: var(--metin);
+    fill: var(--yuzey-2) !important;
+    stroke: var(--vurgu);
     stroke-width: 1.6;
   }
+
+  svg.harita .ilce-nokta {
+    fill: var(--vurgu);
+    fill-opacity: .85;
+    stroke: var(--yuzey);
+    cursor: pointer;
+  }
+
+  svg.harita .ilce-nokta.secili { fill: var(--metin); }
+
+  svg.harita .ilce-etiket {
+    fill: var(--metin);
+    font-weight: 650;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: var(--yuzey);
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  .btn-geri {
+    position: absolute;
+    bottom: 40px;
+    right: 12px;
+    font-size: 12px;
+    padding: 6px 10px;
+    background: var(--yuzey);
+    box-shadow: var(--golge);
+  }
+
+  .harita-kabi { position: relative; }
 
   svg.harita .ben {
     fill: var(--vurgu);
     stroke: var(--yuzey);
-    stroke-width: 2.5;
     pointer-events: none;
   }
 
@@ -416,11 +446,12 @@
 
   <section class="harita-kabi" id="haritaKabi">
     <div class="harita-basi">
-      <span class="etiket">TÜRKİYE GENELİ</span>
+      <span class="etiket">İSTASYON HARİTASI</span>
       <span class="ipucu" id="haritaIpucu">il seçmek için haritaya dokun</span>
     </div>
     <svg class="harita" id="harita" viewBox="0 0 1000 431" role="img"
          aria-label="İllere göre istasyon yoğunluğu haritası"></svg>
+    <button class="btn-geri" id="geriBtn" type="button" hidden>Türkiye geneli</button>
     <div class="lejant">
       <span class="uc">az</span>
       <span class="kutular" id="lejant"></span>
@@ -429,9 +460,10 @@
   </section>
 
   <p class="not">
-    Kaynak listede <b>il, ilçe ve adres</b> dışında bilgi yok: istasyon adı ve şirket
-    kolonu bulunmuyor. Başlıklar adresten üretildi, marka rozeti yalnızca adreste
-    markası geçen <b>43</b> istasyonda çıkar. Yol tarifi adres üzerinden alınır.
+    Kaynak listede istasyon adı ve şirket kolonu yok: başlıklar adresten üretildi,
+    marka rozeti yalnızca adreste markası geçen <b>43</b> istasyonda çıkar.
+    Konumlar <b>ilçe merkezi</b> hassasiyetinde, uzaklıklar bu yüzden yaklaşık (≈);
+    yol tarifi tam adresten alınır.
   </p>
 
   <div class="liste" id="liste"></div>
@@ -452,7 +484,10 @@
   var HARITA = JSON.parse(document.getElementById('haritaVeri').textContent);
   var ILLER = VERI.iller;
   var HEPSI = VERI.istasyonlar.map(function (s, i) {
-    return { id: i, il: s[0], ilce: s[1], adres: s[2], ad: s[3], marka: s[4] };
+    return {
+      id: i, il: s[0], ilce: s[1], adres: s[2], ad: s[3], marka: s[4],
+      lat: s[5], lon: s[6], kesin: s[7]
+    };
   });
 
   function sadelestir(s) {
@@ -540,8 +575,7 @@
 
     if (durum.konum) {
       sonuc.forEach(function (s) {
-        var il = ILLER[s.il];
-        s.km = uzaklikKm(durum.konum.lat, durum.konum.lon, il.lat, il.lon);
+        s.km = uzaklikKm(durum.konum.lat, durum.konum.lon, s.lat, s.lon);
       });
       sonuc.sort(function (a, b) { return a.km - b.km; });
     } else {
@@ -650,6 +684,12 @@
     ];
   }
 
+  function lejantCiz() {
+    document.getElementById('lejant').innerHTML = rampa().map(function (renk) {
+      return '<span class="kutu" style="background:' + renk + '"></span>';
+    }).join('');
+  }
+
   function haritaCiz() {
     var adSira = {};
     ILLER.forEach(function (il, i) { adSira[il.ad] = i; });
@@ -662,10 +702,7 @@
     });
     $harita.innerHTML = html;
 
-    var lej = rampa().map(function (renk) {
-      return '<span class="kutu" style="background:' + renk + '"></span>';
-    }).join('');
-    document.getElementById('lejant').innerHTML = lej;
+    lejantCiz();
   }
 
   // Harita, arama metnine göre yeniden boyanır; il/ilçe seçimi yalnızca vurgular.
@@ -697,7 +734,9 @@
     }
 
     var $ipucu = document.getElementById('haritaIpucu');
-    if (durum.il >= 0) {
+    if (durum.il >= 0 && durum.ilce) {
+      $ipucu.textContent = durum.ilce + ' — ' + durum.sonuc.length + ' istasyon';
+    } else if (durum.il >= 0) {
       $ipucu.textContent = ILLER[durum.il].ad + ' — ' + sayilar[durum.il] + ' istasyon';
     } else if (durum.konum && durum.enYakinIl >= 0) {
       $ipucu.textContent = 'en yakın il: ' + ILLER[durum.enYakinIl].ad;
@@ -709,10 +748,13 @@
     if (eski) eski.remove();
     if (durum.konum) {
       var nk = yansit(durum.konum.lat, durum.konum.lon);
+      var gorus = ($harita.getAttribute('viewBox') || '0 0 1000 431').split(' ');
+      var birimK = (parseFloat(gorus[2]) || 1000) / Math.max($harita.clientWidth || 360, 1);
       var nokta = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       nokta.setAttribute('cx', nk[0].toFixed(1));
       nokta.setAttribute('cy', nk[1].toFixed(1));
-      nokta.setAttribute('r', '7');
+      nokta.setAttribute('r', (7 * birimK).toFixed(2));
+      nokta.setAttribute('stroke-width', (2.5 * birimK).toFixed(2));
       nokta.setAttribute('class', 'ben');
       var etiket = document.createElementNS('http://www.w3.org/2000/svg', 'title');
       etiket.textContent = 'Buradasınız';
@@ -721,23 +763,138 @@
     }
   }
 
-  $harita.addEventListener('click', function (e) {
-    var yol = e.target.closest('path[data-il]');
+  // --- il seçilince haritayı o ile yakınlaştır, ilçe merkezlerini göster ---
+  var TAM_GORUS = '0 0 1000 431';
+  var $geriBtn = document.getElementById('geriBtn');
+
+  function ilceNoktalari(ilIndex) {
+    var grup = {};
+    HEPSI.forEach(function (s) {
+      if (s.il !== ilIndex) return;
+      var g = grup[s.ilce];
+      if (g) { g.sayi++; return; }
+      grup[s.ilce] = { ad: s.ilce, lat: s.lat, lon: s.lon, sayi: 1 };
+    });
+    return Object.keys(grup).map(function (k) { return grup[k]; });
+  }
+
+  function haritaYakinlastir(ilIndex) {
+    var eskiler = $harita.querySelectorAll('.ilce-nokta, .ilce-etiket');
+    for (var e = 0; e < eskiler.length; e++) eskiler[e].remove();
+
+    if (ilIndex < 0) {
+      $harita.setAttribute('viewBox', TAM_GORUS);
+      $geriBtn.hidden = true;
+      return;
+    }
+
+    var yol = $harita.querySelector('path[data-il="' + ilIndex + '"]');
     if (!yol) return;
-    var i = +yol.getAttribute('data-il');
-    if (i < 0) return;
-    durum.il = (durum.il === i) ? -1 : i;
+    var kutu = yol.getBBox();
+    if (!kutu.width || !kutu.height) return;  // harita gizliyken ölçü alınamaz
+    var pay = Math.max(kutu.width, kutu.height) * 0.18 + 6;
+    $harita.setAttribute('viewBox', [
+      (kutu.x - pay).toFixed(1), (kutu.y - pay).toFixed(1),
+      (kutu.width + 2 * pay).toFixed(1), (kutu.height + 2 * pay).toFixed(1)
+    ].join(' '));
+    $geriBtn.hidden = false;
+
+    // Yakınlaşınca yazı ve noktalar viewBox ile birlikte büyüyüp küçülmesin:
+    // ölçüleri ekran pikseline çevirerek veriyoruz.
+    var birim = (kutu.width + 2 * pay) / Math.max($harita.clientWidth || 360, 1);
+    var noktalar = ilceNoktalari(ilIndex);
+    var enCok = noktalar.reduce(function (m, n) { return Math.max(m, n.sayi); }, 1);
+    var ns = 'http://www.w3.org/2000/svg';
+    // Her ilçeyi etiketlemek telefonda okunmaz hale geliyor. Yoğun olandan
+    // başlayıp yalnızca bir öncekilerle çakışmayanları yazıyoruz; kalan ilçe
+    // adları dokunulduğunda başlıkta görünür.
+    var yaziBoy = 11 * birim;
+    var yerlesik = [];
+    var etiketli = {};
+    var sirali = noktalar.slice().sort(function (a, b) {
+      if (durum.ilce) {
+        if (a.ad === durum.ilce) return -1;
+        if (b.ad === durum.ilce) return 1;
+      }
+      return b.sayi - a.sayi;
+    });
+    sirali.forEach(function (n) {
+      if (yerlesik.length >= 8) return;
+      var p = yansit(n.lat, n.lon);
+      var g = n.ad.length * yaziBoy * 0.55;
+      var kutu = [p[0] - g / 2, p[1] - yaziBoy * 2.2, p[0] + g / 2, p[1] - yaziBoy * 0.6];
+      for (var i = 0; i < yerlesik.length; i++) {
+        var v = yerlesik[i];
+        if (kutu[0] < v[2] && kutu[2] > v[0] && kutu[1] < v[3] && kutu[3] > v[1]) return;
+      }
+      yerlesik.push(kutu);
+      etiketli[n.ad] = true;
+    });
+
+    noktalar.forEach(function (n) {
+      var p = yansit(n.lat, n.lon);
+      var r = (2.5 + 4.5 * Math.sqrt(n.sayi / enCok)) * birim;
+      var daire = document.createElementNS(ns, 'circle');
+      daire.setAttribute('cx', p[0].toFixed(1));
+      daire.setAttribute('cy', p[1].toFixed(1));
+      daire.setAttribute('r', r.toFixed(2));
+      daire.setAttribute('class', 'ilce-nokta' + (n.ad === durum.ilce ? ' secili' : ''));
+      daire.setAttribute('stroke-width', (1 * birim).toFixed(2));
+      daire.setAttribute('data-ilce', n.ad);
+      var bilgi = document.createElementNS(ns, 'title');
+      bilgi.textContent = n.ad + ' — ' + n.sayi + ' istasyon';
+      daire.appendChild(bilgi);
+      $harita.appendChild(daire);
+
+      if (!etiketli[n.ad]) return;
+      var yazi = document.createElementNS(ns, 'text');
+      yazi.setAttribute('x', p[0].toFixed(1));
+      yazi.setAttribute('y', (p[1] - r - 3 * birim).toFixed(1));
+      yazi.setAttribute('class', 'ilce-etiket');
+      yazi.setAttribute('font-size', yaziBoy.toFixed(2));
+      yazi.setAttribute('stroke-width', (3 * birim).toFixed(2));
+      yazi.textContent = n.ad;
+      $harita.appendChild(yazi);
+    });
+  }
+
+  function ilSec(i) {
+    durum.il = i;
     durum.ilce = '';
     $il.value = String(durum.il);
     ilceleriDoldur();
     suz();
+    haritaYakinlastir(durum.il);
+  }
+
+  $harita.addEventListener('click', function (e) {
+    var nokta = e.target.closest('circle[data-ilce]');
+    if (nokta) {
+      var ad = nokta.getAttribute('data-ilce');
+      durum.ilce = (durum.ilce === ad) ? '' : ad;
+      $ilce.value = durum.ilce;
+      suz();
+      haritaYakinlastir(durum.il);
+      $liste.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    var yol = e.target.closest('path[data-il]');
+    if (!yol) return;
+    var i = +yol.getAttribute('data-il');
+    if (i < 0) return;
+    ilSec(durum.il === i ? -1 : i);
     if (durum.il >= 0) {
       $liste.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
 
+  $geriBtn.addEventListener('click', function () { ilSec(-1); });
+
   if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', haritaGuncelle);
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+      lejantCiz();
+      haritaGuncelle();
+    });
   }
 
   /* ---------- Olaylar ---------- */
@@ -751,15 +908,13 @@
   });
 
   $il.addEventListener('change', function () {
-    durum.il = +$il.value;
-    durum.ilce = '';
-    ilceleriDoldur();
-    suz();
+    ilSec(+$il.value);
   });
 
   $ilce.addEventListener('change', function () {
     durum.ilce = $ilce.value;
     suz();
+    haritaYakinlastir(durum.il);
   });
 
   var $konumBtn = document.getElementById('konumBtn');
@@ -781,10 +936,10 @@
       durum.konum = { lat: k.coords.latitude, lon: k.coords.longitude };
       $konumBtn.setAttribute('aria-pressed', 'true');
       $konumBtn.lastChild.textContent = ' Yakındakiler önde';
-      var enYakin = 0, enAz = Infinity;
-      ILLER.forEach(function (il, i) {
-        var d = uzaklikKm(durum.konum.lat, durum.konum.lon, il.lat, il.lon);
-        if (d < enAz) { enAz = d; enYakin = i; }
+      var enYakin = -1, enAz = Infinity;
+      HEPSI.forEach(function (st) {
+        var d = uzaklikKm(durum.konum.lat, durum.konum.lon, st.lat, st.lon);
+        if (d < enAz) { enAz = d; enYakin = st.il; }
       });
       durum.enYakinIl = enYakin;
       suz();
@@ -806,7 +961,7 @@
   document.getElementById('kaynakNot').textContent =
     HEPSI.length + ' istasyon · ' + ILLER.length +
     ' il · kaynak: istasyon listesi (' + VERI.guncelleme + ')' +
-    ' · uzaklıklar il merkezine göre yaklaşıktır';
+    ' · uzaklıklar ilçe merkezine göre yaklaşıktır';
 
   document.documentElement.lang = 'tr';
   illeriDoldur();

@@ -11,12 +11,16 @@ harita servisi) çağırmaz. Dosyayı açmak yeterli, sunucu gerekmez.
 - **Arama** — il, ilçe, mahalle veya cadde adına göre; Türkçe karakter duyarsız
   (`kadikoy` yazınca Kadıköy bulunur).
 - **İl / ilçe süzme** — istasyon sayıları seçeneklerde görünür.
-- **Yakınımdakiler** — telefonun konumunu alır, istasyonları yakınlıktan uzağa sıralar.
+- **Yakınımdakiler** — telefonun konumunu alır, istasyonları gerçek uzaklığa göre
+  yakından uzağa sıralar ve her kartta ≈ km yazar.
 - **Türkiye haritası** — açılışta gelen görünüm. Gerçek il sınırları çizilir, her
-  il o ildeki istasyon sayısına göre boyanır (tek renk, açıktan koyuya). İle
-  dokununca o il süzülür ve liste öne kaydırılır; seçili il turuncu vurgulanır.
+  il o ildeki istasyon sayısına göre boyanır (tek renk, açıktan koyuya).
   Aramada harita da yeniden boyanır, yani sonuçların hangi illerde toplandığı
   bir bakışta görünür.
+- **İle dokununca yakınlaşma** — harita o ilin sınırlarına oturur, ilçe merkezleri
+  istasyon sayısına göre büyüyen noktalar olarak çıkar. Noktaya dokunmak o ilçeyi
+  süzer. Etiketler yalnızca çakışmayan ilçelere yazılır; kalanların adı dokununca
+  başlıkta görünür. "Türkiye geneli" düğmesi görünümü sıfırlar.
 - **Yol tarifi** — adresi Google Haritalar'a yol tarifi olarak açar; başlangıç
   noktası telefonun anlık konumudur. "Haritada aç" adresi haritada gösterir.
 
@@ -28,9 +32,7 @@ kolonu yok. Bu yüzden:
 - Kart başlıkları adresten üretilir (öncelikle mahalle adı).
 - Marka rozeti yalnızca markası adres metninde geçen **43** istasyonda görünür
   (ör. "... Cad. TOTAL PETROL NO:259"). Kalanlarda rozet çıkmaz.
-- İstasyonların nokta koordinatı yoktur. Uzaklıklar **il merkezine** göre kabaca
-  hesaplanır ve `≈` ile gösterilir; yol tarifi ise koordinattan değil, adres
-  metninden alınır (haritalar adresi kendi çözer).
+- İstasyonların nokta koordinatı yoktur; aşağıdaki "Konum verisi" bölümüne bakın.
 
 Adı ve şirketi gerçekten göstermek için kaynak listenin bu kolonları içeren bir
 sürümü gerekir; geldiğinde `arac/olustur.py` içindeki ayıklama bu alanları da
@@ -54,9 +56,44 @@ konumlarına dayanır (İL x≈20, İLÇE x≈81, ADRES x≈149); listenin düze
 | `index.html` | Yayına hazır sayfa (veri gömülü) |
 | `veri.json` | Ayıklanmış istasyon verisi |
 | `harita.json` | Sadeleştirilmiş il sınırları (SVG path) |
+| `ilce_konum.json` | İlçe merkezi koordinatları (974 ilçe) |
 | `arac/olustur.py` | PDF → veri.json → index.html |
 | `arac/harita_uret.py` | GeoJSON → harita.json |
+| `arac/konum_uret.py` | GeoJSON → ilce_konum.json |
 | `arac/sablon.html` | Sayfa şablonu (`__VERI__`, `__HARITA__` yer tutucuları) |
+
+## Konum verisi
+
+Kaynak listede koordinat yok, adresler de geocode edilmedi (bu ortamda geocoding
+servislerine çıkış kapalı). Bunun yerine her istasyona **ilçesinin merkez
+koordinatı** atanır:
+
+- **2287 istasyon (%96,8)** ilçe merkezine oturur. İlçe merkezi olarak OSM'in
+  `admin_centre` / `label` düğümü — yani gerçek kasaba merkezi — kullanılır;
+  bu düğüm 974 ilçenin 211'inde var, kalanında ilçe poligonunun ağırlık merkezine
+  düşülür.
+- **75 istasyon** ilçesi eşleşmediği için il merkezinde kalır (büyükşehirlerde
+  "Merkez" adlı bir ilçe bulunmadığı durumlar).
+
+Pratik doğruluk kentsel ilçelerde yüksek, kırsalda düşüktür: Kadıköy 0,3 km,
+Konak 0,9 km sapma verirken, dağlara kadar uzanan Alanya'da sapma 17 km'ye
+çıkabiliyor. Bu yüzden uzaklıklar arayüzde `≈` ile gösteriliyor.
+
+**Yol tarifi bu koordinatları kullanmaz** — adres metnini Google Haritalar'a
+gönderir, adresi harita servisi kendi çözer. Yani navigasyon, koordinat
+hassasiyetinden bağımsız olarak tam adrese gider.
+
+İlçe koordinat tablosu (`ilce_konum.json`, 974 kayıt) şöyle üretilir:
+
+```bash
+curl -sSL -o il4.geojson  https://media.githubusercontent.com/media/izzetkalic/geojsons-of-turkey/master/geojsons/turkey-admin-level-4.geojson
+curl -sSL -o ilce.geojson https://media.githubusercontent.com/media/izzetkalic/geojsons-of-turkey/master/geojsons/turkey-admin-level-6.geojson
+python3 arac/konum_uret.py il4.geojson ilce.geojson
+```
+
+İlçeler ile eşleşirken adları normalleşir (Türkçe harfler sadeleşir), `Afyon →
+Afyonkarahisar` gibi ad farkları eşanlam tablosundan çözülür, `Merkez` ise il
+adını taşıyan ilçeye bağlanır.
 
 ## Harita verisi
 

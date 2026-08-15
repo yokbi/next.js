@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+from collections import defaultdict
 
 import pdfplumber
 
@@ -140,16 +141,69 @@ def kisa_ad(adres):
     return baslik(' '.join(ilk.split()[:5]))
 
 
+def anahtarla(s):
+    """Karşılaştırma anahtarı: Türkçe harfler sadeleşir, boşluk/nokta düşer."""
+    kucuk = tr_lower(s)
+    kucuk = (kucuk.replace('ı', 'i').replace('ş', 's').replace('ğ', 'g')
+                  .replace('ü', 'u').replace('ö', 'o').replace('ç', 'c'))
+    return ''.join(ch for ch in kucuk if ch.isalnum())
+
+
+# Kaynak listedeki adlarla OSM adları arasındaki farklar
+IL_ESANLAM = {'afyon': 'afyonkarahisar'}
+ILCE_ESANLAM = {'19mayis': 'ondokuzmayis'}
+
+
+def konum_cozucu():
+    """(il, ilçe) -> (enlem, boylam, kesinlik) çözen bir işlev döndürür.
+
+    kesinlik 1: ilçe merkezi, 0: il merkezi (ilçe eşleşmediğinde).
+    """
+    yol = os.path.join(KOK, 'ilce_konum.json')
+    tablo = json.load(open(yol, encoding='utf-8'))
+    il_ilceleri = defaultdict(list)
+    for anahtar, (lat, lon) in tablo.items():
+        il, ilce = anahtar.split('|')
+        il_ilceleri[il].append((ilce, lat, lon))
+
+    def coz(il_ham, ilce_ham):
+        il = IL_ESANLAM.get(anahtarla(il_ham), anahtarla(il_ham))
+        ilce = ILCE_ESANLAM.get(anahtarla(ilce_ham), anahtarla(ilce_ham))
+        dogrudan = tablo.get('%s|%s' % (il, ilce))
+        if dogrudan:
+            return dogrudan[0], dogrudan[1], 1
+        if ilce == 'merkez':
+            # Büyükşehirlerde "Merkez" adlı ilçe yok; şehir merkezi doğru cevap.
+            kendi = tablo.get('%s|%s' % (il, il))
+            if kendi:
+                return kendi[0], kendi[1], 1
+            for ad, lat, lon in il_ilceleri[il]:
+                if ad.endswith('merkez'):
+                    return lat, lon, 1
+            enlem, boylam = IL_KOORD[il_ham]
+            return enlem, boylam, 0
+        for ad, lat, lon in il_ilceleri[il]:
+            if ad.startswith(ilce) or ilce.startswith(ad):
+                return lat, lon, 1
+        enlem, boylam = IL_KOORD[il_ham]
+        return enlem, boylam, 0
+
+    return coz
+
+
 def veri_uret(satirlar, guncelleme):
     iller = sorted({s[0] for s in satirlar}, key=sirala_anahtari)
     eksik = [il for il in iller if il not in IL_KOORD]
     if eksik:
         raise SystemExit('Koordinatı bilinmeyen il: ' + ', '.join(eksik))
     sira = {ad: i for i, ad in enumerate(iller)}
+    coz = konum_cozucu()
     istasyonlar = []
     for il, ilce, adres in satirlar:
         adres = adres.strip(' ,')
-        istasyonlar.append([sira[il], baslik(ilce), baslik(adres), kisa_ad(adres), marka_bul(adres)])
+        lat, lon, kesinlik = coz(il, ilce)
+        istasyonlar.append([sira[il], baslik(ilce), baslik(adres), kisa_ad(adres),
+                            marka_bul(adres), lat, lon, kesinlik])
     return {
         'guncelleme': guncelleme,
         'iller': [{'ad': baslik(ad), 'lat': IL_KOORD[ad][0], 'lon': IL_KOORD[ad][1]} for ad in iller],
@@ -182,8 +236,11 @@ def main():
         f.write(sayfa)
 
     markali = sum(1 for s in veri['istasyonlar'] if s[4])
-    print('istasyon: %d | il: %d | markası okunabilen: %d'
-          % (len(veri['istasyonlar']), len(veri['iller']), markali))
+    ilce_kesin = sum(1 for s in veri['istasyonlar'] if s[7] == 1)
+    toplam = len(veri['istasyonlar'])
+    print('istasyon: %d | il: %d | markası okunabilen: %d' % (toplam, len(veri['iller']), markali))
+    print('konum: %d ilçe merkezi (%.1f%%), %d il merkezi'
+          % (ilce_kesin, 100 * ilce_kesin / toplam, toplam - ilce_kesin))
 
 
 if __name__ == '__main__':
