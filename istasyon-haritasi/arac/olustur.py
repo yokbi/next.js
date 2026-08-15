@@ -154,19 +154,44 @@ IL_ESANLAM = {'afyon': 'afyonkarahisar'}
 ILCE_ESANLAM = {'19mayis': 'ondokuzmayis'}
 
 
-def konum_cozucu():
-    """(il, ilçe) -> (enlem, boylam, kesinlik) çözen bir işlev döndürür.
+EK_RE = re.compile(r'\s*(mahallesi|mahalle|mah\.?|mh\.?|köyü|koyu|beldesi)\s*$', re.I)
 
-    kesinlik 1: ilçe merkezi, 0: il merkezi (ilçe eşleşmediğinde).
+
+def mahalle_anahtari(adres):
+    """Adresin başındaki mahalle/köy adını çözümleme anahtarına çevirir."""
+    m = MAH_RE.match(adres)
+    if not m:
+        return ''
+    ad = m.group(1).strip()
+    onceki = None
+    while onceki != ad:
+        onceki = ad
+        ad = EK_RE.sub('', ad).strip()
+    return anahtarla(ad)
+
+
+def konum_cozucu():
+    """(il, ilçe, adres) -> (enlem, boylam, kesinlik) çözen bir işlev döndürür.
+
+    kesinlik 2: mahalle merkezi, 1: ilçe merkezi, 0: il merkezi.
     """
     yol = os.path.join(KOK, 'ilce_konum.json')
     tablo = json.load(open(yol, encoding='utf-8'))
+    mah_yolu = os.path.join(KOK, 'mahalle_konum.json')
+    mahalleler = json.load(open(mah_yolu, encoding='utf-8')) if os.path.exists(mah_yolu) else {}
     il_ilceleri = defaultdict(list)
     for anahtar, (lat, lon) in tablo.items():
         il, ilce = anahtar.split('|')
         il_ilceleri[il].append((ilce, lat, lon))
 
-    def coz(il_ham, ilce_ham):
+    def coz(il_ham, ilce_ham, adres=''):
+        # En dar kapsam önce: adresteki mahalle bu ilçede tanınıyorsa onu kullan.
+        mah = mahalle_anahtari(adres)
+        if mah:
+            nokta = mahalleler.get('%s|%s' % (anahtarla(ilce_ham), mah))
+            if nokta:
+                return nokta[0], nokta[1], 2
+
         il = IL_ESANLAM.get(anahtarla(il_ham), anahtarla(il_ham))
         ilce = ILCE_ESANLAM.get(anahtarla(ilce_ham), anahtarla(ilce_ham))
         dogrudan = tablo.get('%s|%s' % (il, ilce))
@@ -201,7 +226,7 @@ def veri_uret(satirlar, guncelleme):
     istasyonlar = []
     for il, ilce, adres in satirlar:
         adres = adres.strip(' ,')
-        lat, lon, kesinlik = coz(il, ilce)
+        lat, lon, kesinlik = coz(il, ilce, adres)
         istasyonlar.append([sira[il], baslik(ilce), baslik(adres), kisa_ad(adres),
                             marka_bul(adres), lat, lon, kesinlik])
     return {
@@ -236,11 +261,11 @@ def main():
         f.write(sayfa)
 
     markali = sum(1 for s in veri['istasyonlar'] if s[4])
-    ilce_kesin = sum(1 for s in veri['istasyonlar'] if s[7] == 1)
     toplam = len(veri['istasyonlar'])
+    sayim = collections.Counter(s[7] for s in veri['istasyonlar'])
     print('istasyon: %d | il: %d | markası okunabilen: %d' % (toplam, len(veri['iller']), markali))
-    print('konum: %d ilçe merkezi (%.1f%%), %d il merkezi'
-          % (ilce_kesin, 100 * ilce_kesin / toplam, toplam - ilce_kesin))
+    print('konum: %d mahalle (%.1f%%), %d ilçe merkezi, %d il merkezi'
+          % (sayim[2], 100 * sayim[2] / toplam, sayim[1], sayim[0]))
 
 
 if __name__ == '__main__':

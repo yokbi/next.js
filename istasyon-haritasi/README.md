@@ -57,43 +57,86 @@ konumlarına dayanır (İL x≈20, İLÇE x≈81, ADRES x≈149); listenin düze
 | `veri.json` | Ayıklanmış istasyon verisi |
 | `harita.json` | Sadeleştirilmiş il sınırları (SVG path) |
 | `ilce_konum.json` | İlçe merkezi koordinatları (974 ilçe) |
+| `mahalle_konum.json` | Mahalle merkezi koordinatları (4944 mahalle) |
 | `arac/olustur.py` | PDF → veri.json → index.html |
 | `arac/harita_uret.py` | GeoJSON → harita.json |
-| `arac/konum_uret.py` | GeoJSON → ilce_konum.json |
+| `arac/konum_uret.py` | GeoJSON → ilce_konum.json + mahalle_konum.json |
 | `arac/sablon.html` | Sayfa şablonu (`__VERI__`, `__HARITA__` yer tutucuları) |
 
 ## Konum verisi
 
-Kaynak listede koordinat yok, adresler de geocode edilmedi (bu ortamda geocoding
-servislerine çıkış kapalı). Bunun yerine her istasyona **ilçesinin merkez
-koordinatı** atanır:
+Kaynak listede koordinat yok. Her istasyona, adresinden çözülebilen **en dar
+yönetsel birimin** merkezi atanır:
 
-- **2287 istasyon (%96,8)** ilçe merkezine oturur. İlçe merkezi olarak OSM'in
-  `admin_centre` / `label` düğümü — yani gerçek kasaba merkezi — kullanılır;
-  bu düğüm 974 ilçenin 211'inde var, kalanında ilçe poligonunun ağırlık merkezine
-  düşülür.
-- **75 istasyon** ilçesi eşleşmediği için il merkezinde kalır (büyükşehirlerde
-  "Merkez" adlı bir ilçe bulunmadığı durumlar).
+| Kesinlik | İstasyon | Oran | Kaynak |
+| --- | ---: | ---: | --- |
+| Mahalle merkezi | 757 | %32,0 | OSM `admin_level=8` sınırları |
+| İlçe merkezi | 1533 | %64,9 | OSM `admin_level=6`; 211 ilçede gerçek `admin_centre` düğümü |
+| İl merkezi | 72 | %3,0 | İlçe eşleşmediğinde (büyükşehirde "Merkez" adresleri) |
 
-Pratik doğruluk kentsel ilçelerde yüksek, kırsalda düşüktür: Kadıköy 0,3 km,
-Konak 0,9 km sapma verirken, dağlara kadar uzanan Alanya'da sapma 17 km'ye
-çıkabiliyor. Bu yüzden uzaklıklar arayüzde `≈` ile gösteriliyor.
+Mahalle çözümü şöyle çalışır: adresin başındaki mahalle/köy adı ("Kıcak
+Mahallesi ...") ekinden arındırılıp normalleştirilir ve **istasyonun ilçesiyle
+birlikte** aranır. Aynı ad ülke genelinde yüzlerce kez geçtiği için (Cumhuriyet,
+Yeni, Merkez) ilçe kısıtı şart; mahallenin ilçesi de ad eşleşmesiyle değil,
+merkez noktasının ilçe poligonuna düşmesiyle belirlenir.
+
+Ölçülen kazanç: mahalleye çözülen istasyonlar ilçe merkezinden **medyan 4,6 km**
+(%90'lık dilimde 14 km) uzağa taşındı. Örnek: Sultanahmet'ten bakınca en yakın
+istasyon artık Fatih/Cankurtaran'da ≈0 km çıkıyor, önceden Kadıköy ile Fatih
+arasındaki fark görünmüyordu.
+
+Kalan sapma kaynağı: mahalleye çözülemeyen 1533 istasyon ilçe merkezinde duruyor.
+Kentsel ilçelerde bu iyi (Kadıköy 0,3 km, Konak 0,9 km), kırsalda kötü (dağlara
+uzanan Alanya'da 17 km).
 
 **Yol tarifi bu koordinatları kullanmaz** — adres metnini Google Haritalar'a
 gönderir, adresi harita servisi kendi çözer. Yani navigasyon, koordinat
 hassasiyetinden bağımsız olarak tam adrese gider.
 
-İlçe koordinat tablosu (`ilce_konum.json`, 974 kayıt) şöyle üretilir:
+### Neden sokak seviyesine inilemedi
+
+Sokak/kapı numarası hassasiyeti için adreslerin geocode edilmesi gerekir. Bu
+ortamdan çıkış politikası buna izin vermiyor: Nominatim, Photon, Overpass,
+Geoapify, LocationIQ, OpenCage, OpenRouteService, TomTom, Geofabrik, GeoNames,
+HDX ve İBB açık veri sunucularının hepsi proxy'de 403 dönüyor. Erişilebilen tek
+kanallar GitHub (raw + LFS), GitLab, npm ve PyPI.
+
+Bu kanallardan aranan ve **işe yaramayan** kaynaklar:
+
+- Ülke geneli mahalle koordinatı: `melihkorkmaz/il-ilce-mahalle-geolocation-rest-api`,
+  `caglarsarikaya/turkey-geolocations`, `ramdemi/TurkeyGeolocationRestApi`,
+  `bertugfahriozer/il_ilce_mahalle` — hepsinde koordinat yalnızca il/ilçe düzeyinde.
+- npm `turkey-neighbourhoods`: ülke geneli mahalle + posta kodu listesi tam, ama
+  koordinat yok. Posta kodunu koordinata çevirecek erişilebilir bir kaynak da yok
+  (GeoNames posta kodu dosyası kapalı).
+- `sahircansurmeli/istanbul-geojson`: İstanbul'un 968 mahallesi (dosya bozuk JSON,
+  onarılabiliyor) — ancak ülke geneli OSM dosyası İstanbul'u zaten kapsadığı için
+  yalnızca 2 yeni mahalle ekliyor.
+- TKGM'nin mahalle servisi: sorgu limiti düşük ve sunucu kapalı.
+
+Sokak seviyesine çıkmanın tek yolu bir geocoding sunucusuna izin verilmesi. Ortam
+ayarlarında `nominatim.openstreetmap.org` (saniyede 1 istek, 2362 adres ≈ 40
+dakika) veya `overpass-api.de` açılırsa:
+
+- Nominatim ile adresler doğrudan koordinata çevrilebilir.
+- Overpass ile Türkiye'deki `amenity=fuel` noktaları çekilip listeyle eşleştirilebilir;
+  bu aynı zamanda **eksik olan istasyon adı ve şirket bilgisini de** getirir,
+  çünkü OSM kayıtlarında `name`, `brand` ve `operator` etiketleri bulunur.
+
+İkincisi tek sorguyla hem konumu hem kimliği çözdüğü için daha değerli.
+
+### Tabloların üretimi
 
 ```bash
 curl -sSL -o il4.geojson  https://media.githubusercontent.com/media/izzetkalic/geojsons-of-turkey/master/geojsons/turkey-admin-level-4.geojson
 curl -sSL -o ilce.geojson https://media.githubusercontent.com/media/izzetkalic/geojsons-of-turkey/master/geojsons/turkey-admin-level-6.geojson
-python3 arac/konum_uret.py il4.geojson ilce.geojson
+curl -sSL -o mah.geojson  https://media.githubusercontent.com/media/izzetkalic/geojsons-of-turkey/master/geojsons/turkey-admin-level-8.geojson
+python3 arac/konum_uret.py il4.geojson ilce.geojson mah.geojson
 ```
 
-İlçeler ile eşleşirken adları normalleşir (Türkçe harfler sadeleşir), `Afyon →
-Afyonkarahisar` gibi ad farkları eşanlam tablosundan çözülür, `Merkez` ise il
-adını taşıyan ilçeye bağlanır.
+`ilce_konum.json` (974 ilçe) ve `mahalle_konum.json` (4944 mahalle) yazılır.
+Eşleşmede adlar normalleşir, `Afyon → Afyonkarahisar` gibi farklar eşanlam
+tablosundan çözülür, `Merkez` il adını taşıyan ilçeye bağlanır.
 
 ## Harita verisi
 

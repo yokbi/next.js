@@ -462,8 +462,9 @@
   <p class="not">
     Kaynak listede istasyon adı ve şirket kolonu yok: başlıklar adresten üretildi,
     marka rozeti yalnızca adreste markası geçen <b>43</b> istasyonda çıkar.
-    Konumlar <b>ilçe merkezi</b> hassasiyetinde, uzaklıklar bu yüzden yaklaşık (≈);
-    yol tarifi tam adresten alınır.
+    Konum, adresteki mahalle tanınıyorsa <b>mahalle</b> (757 istasyon), değilse
+    <b>ilçe merkezi</b> hassasiyetinde; uzaklıklar bu yüzden yaklaşık (≈).
+    Yol tarifi tam adresten alınır, koordinattan değil.
   </p>
 
   <div class="liste" id="liste"></div>
@@ -610,8 +611,9 @@
   function kartHtml(s) {
     var hedef = encodeURIComponent(tamAdres(s));
     var rozet = s.marka ? '<span class="rozet">' + kacir(s.marka) + '</span>' : '';
+    var KESINLIK_ADI = ['il merkezine göre', 'ilçe merkezine göre', 'mahalle merkezine göre'];
     var km = (s.km || s.km === 0)
-      ? '<span class="uzaklik">≈' + s.km + ' km</span>'
+      ? '<span class="uzaklik" title="' + KESINLIK_ADI[s.kesin] + '">≈' + s.km + ' km</span>'
       : '';
     return '<article class="kart">' +
       '<h2>' + kacir(s.ad) + '</h2>' +
@@ -961,7 +963,7 @@
   document.getElementById('kaynakNot').textContent =
     HEPSI.length + ' istasyon · ' + ILLER.length +
     ' il · kaynak: istasyon listesi (' + VERI.guncelleme + ')' +
-    ' · uzaklıklar ilçe merkezine göre yaklaşıktır';
+    ' · uzaklıklar mahalle/ilçe merkezine göre yaklaşıktır';
 
   document.documentElement.lang = 'tr';
   illeriDoldur();
