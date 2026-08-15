@@ -173,9 +173,13 @@ def main():
     with open(os.path.join(KOK, 'veri.json'), 'w', encoding='utf-8') as f:
         f.write(veri_metni)
 
+    harita_metni = open(os.path.join(KOK, 'harita.json'), encoding='utf-8').read().strip()
     sablon = open(SABLON, encoding='utf-8').read()
+    sayfa = sablon.replace('__VERI__', veri_metni).replace('__HARITA__', harita_metni)
+    if '__VERI__' in sayfa or '__HARITA__' in sayfa:
+        raise SystemExit('Şablondaki yer tutucular doldurulamadı.')
     with open(os.path.join(KOK, 'index.html'), 'w', encoding='utf-8') as f:
-        f.write(sablon.replace('__VERI__', veri_metni))
+        f.write(sayfa)
 
     markali = sum(1 for s in veri['istasyonlar'] if s[4])
     print('istasyon: %d | il: %d | markası okunabilen: %d'

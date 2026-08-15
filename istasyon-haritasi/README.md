@@ -12,8 +12,11 @@ harita servisi) çağırmaz. Dosyayı açmak yeterli, sunucu gerekmez.
   (`kadikoy` yazınca Kadıköy bulunur).
 - **İl / ilçe süzme** — istasyon sayıları seçeneklerde görünür.
 - **Yakınımdakiler** — telefonun konumunu alır, istasyonları yakınlıktan uzağa sıralar.
-- **İl dağılım haritası** — her il gerçek enlem/boylamına göre bir daire; daire
-  büyüklüğü o ildeki istasyon sayısı. Daireye dokununca o il süzülür.
+- **Türkiye haritası** — açılışta gelen görünüm. Gerçek il sınırları çizilir, her
+  il o ildeki istasyon sayısına göre boyanır (tek renk, açıktan koyuya). İle
+  dokununca o il süzülür ve liste öne kaydırılır; seçili il turuncu vurgulanır.
+  Aramada harita da yeniden boyanır, yani sonuçların hangi illerde toplandığı
+  bir bakışta görünür.
 - **Yol tarifi** — adresi Google Haritalar'a yol tarifi olarak açar; başlangıç
   noktası telefonun anlık konumudur. "Haritada aç" adresi haritada gösterir.
 
@@ -40,7 +43,7 @@ pip install pdfplumber
 python3 arac/olustur.py istasyon_listesi.pdf [guncelleme_tarihi]
 ```
 
-`veri.json` ve `index.html` yeniden yazılır. Ayıklama PDF'teki sabit sütun
+`veri.json` ve `index.html` yeniden yazılır; `harita.json` olduğu gibi gömülür. Ayıklama PDF'teki sabit sütun
 konumlarına dayanır (İL x≈20, İLÇE x≈81, ADRES x≈149); listenin düzeni değişirse
 `X_ILCE` / `X_ADRES` değerleri güncellenmelidir.
 
@@ -50,5 +53,22 @@ konumlarına dayanır (İL x≈20, İLÇE x≈81, ADRES x≈149); listenin düze
 | --- | --- |
 | `index.html` | Yayına hazır sayfa (veri gömülü) |
 | `veri.json` | Ayıklanmış istasyon verisi |
+| `harita.json` | Sadeleştirilmiş il sınırları (SVG path) |
 | `arac/olustur.py` | PDF → veri.json → index.html |
-| `arac/sablon.html` | Veri gömülmeden önceki sayfa şablonu (`__VERI__`) |
+| `arac/harita_uret.py` | GeoJSON → harita.json |
+| `arac/sablon.html` | Sayfa şablonu (`__VERI__`, `__HARITA__` yer tutucuları) |
+
+## Harita verisi
+
+İl sınırları [alpers/Turkey-Maps-GeoJSON](https://github.com/alpers/Turkey-Maps-GeoJSON)
+veri kümesinden alınıp Douglas-Peucker ile sadeleştirildi (~1 km tolerans, 46 KB)
+ve enlem düzeltmeli eş dikdörtgen izdüşümle SVG path'e çevrildi. Sınırların
+yeniden üretimi `arac/harita_uret.py` ile yapılır:
+
+```bash
+curl -o tr.json https://raw.githubusercontent.com/alpers/Turkey-Maps-GeoJSON/master/tr-cities.json
+python3 arac/harita_uret.py 0.012
+```
+
+Ardahan, Artvin, Hakkari ve Iğdır'da listede istasyon yok; bu iller haritada
+nötr renkte ve tıklanamaz durumda çizilir.
