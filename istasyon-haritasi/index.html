@@ -920,24 +920,31 @@
   });
 
   var $konumBtn = document.getElementById('konumBtn');
-  $konumBtn.addEventListener('click', function () {
-    if (durum.konum) {
-      durum.konum = null;
-      durum.enYakinIl = -1;
-      $konumBtn.setAttribute('aria-pressed', 'false');
-      $konumBtn.lastChild.textContent = ' Yakınımdakiler';
-      suz();
-      return;
-    }
+
+  function konumYazisi(metin) { $konumBtn.lastChild.textContent = ' ' + metin; }
+
+  var konumBekci = null;
+
+  function konumAl() {
     if (!navigator.geolocation) {
-      $konumBtn.lastChild.textContent = ' Konum desteklenmiyor';
+      konumYazisi('Konum desteklenmiyor');
       return;
     }
-    $konumBtn.lastChild.textContent = ' Konum alınıyor…';
+    konumYazisi('Konum alınıyor…');
+    // Kullanıcı izin kutusunu yanıtlamazsa tarayıcı zaman aşımını her zaman
+    // tetiklemiyor; düğme "alınıyor" durumunda asılı kalmasın.
+    clearTimeout(konumBekci);
+    konumBekci = setTimeout(function () {
+      if (!durum.konum) {
+        konumYazisi('Yakınımdakiler');
+        $konumBtn.setAttribute('aria-pressed', 'false');
+      }
+    }, 12000);
     navigator.geolocation.getCurrentPosition(function (k) {
+      clearTimeout(konumBekci);
       durum.konum = { lat: k.coords.latitude, lon: k.coords.longitude };
       $konumBtn.setAttribute('aria-pressed', 'true');
-      $konumBtn.lastChild.textContent = ' Yakındakiler önde';
+      konumYazisi('Yakındakiler önde');
       var enYakin = -1, enAz = Infinity;
       HEPSI.forEach(function (st) {
         var d = uzaklikKm(durum.konum.lat, durum.konum.lon, st.lat, st.lon);
@@ -946,8 +953,23 @@
       durum.enYakinIl = enYakin;
       suz();
     }, function () {
-      $konumBtn.lastChild.textContent = ' Konum alınamadı';
-    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+      clearTimeout(konumBekci);
+      konumYazisi('Yakınımdakiler');
+      $konumBtn.setAttribute('aria-pressed', 'false');
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 });
+  }
+
+  $konumBtn.addEventListener('click', function () {
+    if (durum.konum) {
+      clearTimeout(konumBekci);
+      durum.konum = null;
+      durum.enYakinIl = -1;
+      $konumBtn.setAttribute('aria-pressed', 'false');
+      konumYazisi('Yakınımdakiler');
+      suz();
+      return;
+    }
+    konumAl();
   });
 
   var $haritaBtn = document.getElementById('haritaBtn');
@@ -970,5 +992,6 @@
   ilceleriDoldur();
   haritaCiz();
   suz();
+  konumAl();
 })();
 </script>
