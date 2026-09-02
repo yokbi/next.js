@@ -1,0 +1,997 @@
+<title>İstasyon Bul</title>
+<style>
+  :root {
+    color-scheme: light;
+    --zemin: #f1f3f2;
+    --yuzey: #ffffff;
+    --yuzey-2: #e7ebea;
+    --metin: #14202b;
+    --metin-2: #4d5e6b;
+    --metin-3: #78899a;
+    --cizgi: #d3dbda;
+    --cizgi-koyu: #b9c4c3;
+    --vurgu: #c9611c;
+    --vurgu-uzeri: #ffffff;
+    --vurgu-zemin: #fdf0e5;
+    --destek: #1f6f60;
+    --destek-zemin: #e3f0ec;
+    --golge: 0 1px 2px rgba(20, 32, 43, .07), 0 6px 16px -8px rgba(20, 32, 43, .18);
+    --serit: #14202b;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --zemin: #0e161d;
+      --yuzey: #18232e;
+      --yuzey-2: #1f2d3a;
+      --metin: #e8eef1;
+      --metin-2: #a3b3bf;
+      --metin-3: #7d8f9c;
+      --cizgi: #2a3945;
+      --cizgi-koyu: #3a4b59;
+      --vurgu: #f0954e;
+      --vurgu-uzeri: #14202b;
+      --vurgu-zemin: #2e2116;
+      --destek: #57bfa8;
+      --destek-zemin: #14302a;
+      --golge: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 20px -10px rgba(0, 0, 0, .6);
+      --serit: #f0954e;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --zemin: #0e161d;
+    --yuzey: #18232e;
+    --yuzey-2: #1f2d3a;
+    --metin: #e8eef1;
+    --metin-2: #a3b3bf;
+    --metin-3: #7d8f9c;
+    --cizgi: #2a3945;
+    --cizgi-koyu: #3a4b59;
+    --vurgu: #f0954e;
+    --vurgu-uzeri: #14202b;
+    --vurgu-zemin: #2e2116;
+    --destek: #57bfa8;
+    --destek-zemin: #14302a;
+    --golge: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 20px -10px rgba(0, 0, 0, .6);
+    --serit: #f0954e;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--zemin);
+    color: var(--metin);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .sarmal { max-width: 720px; margin: 0 auto; padding: 0 14px 96px; }
+
+  /* ---------- Başlık ---------- */
+  .tepe {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--zemin);
+    padding: 14px 0 10px;
+    border-bottom: 1px solid var(--cizgi);
+  }
+
+  .marka { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+  .marka h1 {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -.024em;
+  }
+
+  .sayac {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--metin-2);
+    background: var(--yuzey-2);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+
+  .ara-kutu { position: relative; margin-top: 10px; }
+
+  .ara-kutu svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--metin-3);
+    pointer-events: none;
+  }
+
+  input[type="search"] {
+    width: 100%;
+    font: inherit;
+    font-size: 16px;
+    color: var(--metin);
+    background: var(--yuzey);
+    border: 1px solid var(--cizgi-koyu);
+    border-radius: 12px;
+    padding: 11px 12px 11px 40px;
+    box-shadow: var(--golge);
+    appearance: none;
+  }
+
+  input[type="search"]::placeholder { color: var(--metin-3); }
+
+  .secimler { display: flex; gap: 8px; margin-top: 8px; }
+
+  select {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 15px;
+    color: var(--metin);
+    background: var(--yuzey);
+    border: 1px solid var(--cizgi-koyu);
+    border-radius: 10px;
+    padding: 9px 10px;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, currentcolor 50%),
+                      linear-gradient(135deg, currentcolor 50%, transparent 50%);
+    background-position: right 14px center, right 9px center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+
+  .arac-sirasi { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 10px;
+    border: 1px solid var(--cizgi-koyu);
+    background: var(--yuzey);
+    color: var(--metin);
+    padding: 9px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    line-height: 1;
+  }
+
+  button:hover { border-color: var(--metin-3); }
+
+  .btn-konum { font-size: 14px; font-weight: 600; }
+  .btn-konum[aria-pressed="true"] {
+    background: var(--destek-zemin);
+    border-color: var(--destek);
+    color: var(--destek);
+  }
+
+  .btn-harita { font-size: 14px; margin-left: auto; }
+
+  :focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+
+  /* ---------- Kaynak notu ---------- */
+  .not {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border-left: 3px solid var(--vurgu);
+    background: var(--vurgu-zemin);
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    color: var(--metin-2);
+  }
+
+  .not b { color: var(--metin); font-weight: 650; }
+
+  /* ---------- Harita ---------- */
+  .harita-kabi {
+    margin-top: 12px;
+    background: var(--yuzey);
+    border: 1px solid var(--cizgi);
+    border-radius: 14px;
+    padding: 10px 10px 6px;
+    box-shadow: var(--golge);
+  }
+
+  .harita-kabi[hidden] { display: none; }
+
+  .harita-basi {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .harita-basi .etiket {
+    font-size: 11px;
+    letter-spacing: .1em;
+    color: var(--metin-3);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .harita-basi .ipucu {
+    font-size: 11px;
+    color: var(--metin-3);
+    text-align: right;
+    line-height: 1.3;
+  }
+
+  svg.harita { width: 100%; height: auto; display: block; touch-action: manipulation; }
+
+  svg.harita path {
+    stroke: var(--yuzey);
+    stroke-width: 1.1;
+    stroke-linejoin: round;
+    cursor: pointer;
+    transition: fill .15s ease;
+  }
+
+  svg.harita path[data-il="-1"] { cursor: default; }
+
+  svg.harita path:hover { stroke: var(--metin-2); stroke-width: 1.4; }
+
+  svg.harita path.secili {
+    fill: var(--yuzey-2) !important;
+    stroke: var(--vurgu);
+    stroke-width: 1.6;
+  }
+
+  svg.harita .ilce-nokta {
+    fill: var(--vurgu);
+    fill-opacity: .85;
+    stroke: var(--yuzey);
+    cursor: pointer;
+  }
+
+  svg.harita .ilce-nokta.secili { fill: var(--metin); }
+
+  svg.harita .ilce-etiket {
+    fill: var(--metin);
+    font-weight: 650;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: var(--yuzey);
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  .btn-geri {
+    position: absolute;
+    bottom: 40px;
+    right: 12px;
+    font-size: 12px;
+    padding: 6px 10px;
+    background: var(--yuzey);
+    box-shadow: var(--golge);
+  }
+
+  .harita-kabi { position: relative; }
+
+  svg.harita .ben {
+    fill: var(--vurgu);
+    stroke: var(--yuzey);
+    pointer-events: none;
+  }
+
+  /* yoğunluk lejantı */
+  .lejant {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--metin-3);
+  }
+
+  .lejant .kutular { display: flex; flex: 1; gap: 2px; }
+
+  .lejant .kutu {
+    flex: 1;
+    height: 9px;
+    border-radius: 2px;
+  }
+
+  .lejant .uc { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Liste ---------- */
+  .liste { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+
+  .kart {
+    background: var(--yuzey);
+    border: 1px solid var(--cizgi);
+    border-left: 3px solid var(--serit);
+    border-radius: 12px;
+    padding: 12px 13px;
+    box-shadow: var(--golge);
+  }
+
+  .kart h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+  }
+
+  .yer {
+    margin: 3px 0 0;
+    font-size: 13px;
+    color: var(--metin-2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .rozet {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--vurgu-zemin);
+    color: var(--vurgu);
+    border: 1px solid currentcolor;
+  }
+
+  .rozet.yok {
+    background: transparent;
+    color: var(--metin-3);
+    border-color: var(--cizgi-koyu);
+    font-weight: 600;
+  }
+
+  .uzaklik {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--destek);
+    margin-left: auto;
+  }
+
+  .adres { margin: 8px 0 0; font-size: 14px; color: var(--metin-2); }
+
+  .eylemler { display: flex; gap: 8px; margin-top: 11px; flex-wrap: wrap; }
+
+  .eylemler a, .eylemler button {
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: 9px;
+  }
+
+  .tarif {
+    background: var(--vurgu);
+    color: var(--vurgu-uzeri);
+    border: 1px solid var(--vurgu);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .goster {
+    background: var(--yuzey-2);
+    color: var(--metin);
+    border: 1px solid var(--cizgi-koyu);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .bos {
+    text-align: center;
+    color: var(--metin-2);
+    padding: 40px 20px;
+    font-size: 15px;
+  }
+
+  .dip {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid var(--cizgi);
+    font-size: 12px;
+    color: var(--metin-3);
+  }
+
+  .yukleniyor { text-align: center; padding: 16px; color: var(--metin-3); font-size: 13px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="sarmal">
+  <header class="tepe">
+    <div class="marka">
+      <h1>İstasyon Bul</h1>
+      <span class="sayac" id="sayac">—</span>
+    </div>
+
+    <div class="ara-kutu">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="m20 20-3.5-3.5"></path>
+      </svg>
+      <input type="search" id="ara" placeholder="İl, ilçe, mahalle veya cadde ara" autocomplete="off" aria-label="İstasyon ara">
+    </div>
+
+    <div class="secimler">
+      <select id="il" aria-label="İl seç"></select>
+      <select id="ilce" aria-label="İlçe seç"></select>
+    </div>
+
+    <div class="arac-sirasi">
+      <button class="btn-konum" id="konumBtn" type="button" aria-pressed="false">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.2"></circle>
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+        </svg>
+        Yakınımdakiler
+      </button>
+      <button class="btn-harita" id="haritaBtn" type="button" aria-expanded="true">Haritayı gizle</button>
+    </div>
+  </header>
+
+  <section class="harita-kabi" id="haritaKabi">
+    <div class="harita-basi">
+      <span class="etiket">İSTASYON HARİTASI</span>
+      <span class="ipucu" id="haritaIpucu">il seçmek için haritaya dokun</span>
+    </div>
+    <svg class="harita" id="harita" viewBox="0 0 1000 431" role="img"
+         aria-label="İllere göre istasyon yoğunluğu haritası"></svg>
+    <button class="btn-geri" id="geriBtn" type="button" hidden>Türkiye geneli</button>
+    <div class="lejant">
+      <span class="uc">az</span>
+      <span class="kutular" id="lejant"></span>
+      <span class="uc">çok</span>
+    </div>
+  </section>
+
+  <p class="not">
+    Kaynak listede istasyon adı ve şirket kolonu yok: başlıklar adresten üretildi,
+    marka rozeti yalnızca adreste markası geçen <b>43</b> istasyonda çıkar.
+    Konum, adresteki mahalle tanınıyorsa <b>mahalle</b> (757 istasyon), değilse
+    <b>ilçe merkezi</b> hassasiyetinde; uzaklıklar bu yüzden yaklaşık (≈).
+    Yol tarifi tam adresten alınır, koordinattan değil.
+  </p>
+
+  <div class="liste" id="liste"></div>
+  <div class="yukleniyor" id="sentinel" hidden>Daha fazla yükleniyor…</div>
+
+  <footer class="dip">
+    <div id="kaynakNot"></div>
+  </footer>
+</div>
+
+<script id="veri" type="application/json">__VERI__</script>
+<script id="haritaVeri" type="application/json">__HARITA__</script>
+<script>
+(function () {
+  'use strict';
+
+  var VERI = JSON.parse(document.getElementById('veri').textContent);
+  var HARITA = JSON.parse(document.getElementById('haritaVeri').textContent);
+  var ILLER = VERI.iller;
+  var HEPSI = VERI.istasyonlar.map(function (s, i) {
+    return {
+      id: i, il: s[0], ilce: s[1], adres: s[2], ad: s[3], marka: s[4],
+      lat: s[5], lon: s[6], kesin: s[7]
+    };
+  });
+
+  function sadelestir(s) {
+    return s
+      .replace(/[İIı]/g, 'i')
+      .replace(/[Şş]/g, 's')
+      .replace(/[Ğğ]/g, 'g')
+      .replace(/[Üü]/g, 'u')
+      .replace(/[Öö]/g, 'o')
+      .replace(/[Çç]/g, 'c')
+      .toLowerCase();
+  }
+
+  HEPSI.forEach(function (s) {
+    s.anahtar = sadelestir(ILLER[s.il].ad + ' ' + s.ilce + ' ' + s.adres + ' ' + s.marka);
+  });
+
+  var ILCELER = {};
+  HEPSI.forEach(function (s) {
+    (ILCELER[s.il] = ILCELER[s.il] || {})[s.ilce] = (ILCELER[s.il][s.ilce] || 0) + 1;
+  });
+
+  var IL_SAYI = ILLER.map(function (_, i) {
+    return HEPSI.filter(function (s) { return s.il === i; }).length;
+  });
+
+  var durum = { q: '', il: -1, ilce: '', konum: null, enYakinIl: -1, gosterilen: 0, sonuc: [] };
+
+  var $ara = document.getElementById('ara');
+  var $il = document.getElementById('il');
+  var $ilce = document.getElementById('ilce');
+  var $liste = document.getElementById('liste');
+  var $sayac = document.getElementById('sayac');
+  var $sentinel = document.getElementById('sentinel');
+  var $harita = document.getElementById('harita');
+  var $haritaKabi = document.getElementById('haritaKabi');
+
+  /* ---------- Seçim kutuları ---------- */
+  function illeriDoldur() {
+    var html = '<option value="-1">Tüm iller (' + HEPSI.length + ')</option>';
+    ILLER.forEach(function (il, i) {
+      html += '<option value="' + i + '">' + il.ad + ' (' + IL_SAYI[i] + ')</option>';
+    });
+    $il.innerHTML = html;
+  }
+
+  function ilceleriDoldur() {
+    if (durum.il < 0) {
+      $ilce.innerHTML = '<option value="">Tüm ilçeler</option>';
+      $ilce.disabled = true;
+      return;
+    }
+    $ilce.disabled = false;
+    var adlar = Object.keys(ILCELER[durum.il]).sort(function (a, b) {
+      return a.localeCompare(b, 'tr');
+    });
+    var html = '<option value="">Tüm ilçeler</option>';
+    adlar.forEach(function (ad) {
+      html += '<option value="' + ad + '">' + ad + ' (' + ILCELER[durum.il][ad] + ')</option>';
+    });
+    $ilce.innerHTML = html;
+  }
+
+  /* ---------- Uzaklık ---------- */
+  function uzaklikKm(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var d = Math.PI / 180;
+    var a = Math.sin((lat2 - lat1) * d / 2) * Math.sin((lat2 - lat1) * d / 2) +
+      Math.cos(lat1 * d) * Math.cos(lat2 * d) *
+      Math.sin((lon2 - lon1) * d / 2) * Math.sin((lon2 - lon1) * d / 2);
+    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
+
+  /* ---------- Süzme ---------- */
+  function suz() {
+    var kelimeler = sadelestir(durum.q).split(/\s+/).filter(Boolean);
+    var sonuc = HEPSI.filter(function (s) {
+      if (durum.il >= 0 && s.il !== durum.il) return false;
+      if (durum.ilce && s.ilce !== durum.ilce) return false;
+      for (var i = 0; i < kelimeler.length; i++) {
+        if (s.anahtar.indexOf(kelimeler[i]) === -1) return false;
+      }
+      return true;
+    });
+
+    if (durum.konum) {
+      sonuc.forEach(function (s) {
+        s.km = uzaklikKm(durum.konum.lat, durum.konum.lon, s.lat, s.lon);
+      });
+      sonuc.sort(function (a, b) { return a.km - b.km; });
+    } else {
+      sonuc.forEach(function (s) { delete s.km; });
+    }
+
+    durum.sonuc = sonuc;
+    durum.gosterilen = 0;
+    $liste.innerHTML = '';
+    $sayac.textContent = sonuc.length + ' istasyon';
+    if (!sonuc.length) {
+      $liste.innerHTML = '<p class="bos">Bu aramaya uyan istasyon yok.<br>Farklı bir il ya da kelime deneyin.</p>';
+      $sentinel.hidden = true;
+      haritaGuncelle();
+      return;
+    }
+    dahaGetir();
+    haritaGuncelle();
+  }
+
+  /* ---------- Kart çizimi ---------- */
+  function kacir(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function tamAdres(s) {
+    return s.adres + ', ' + s.ilce + ', ' + ILLER[s.il].ad;
+  }
+
+  function kartHtml(s) {
+    var hedef = encodeURIComponent(tamAdres(s));
+    var rozet = s.marka ? '<span class="rozet">' + kacir(s.marka) + '</span>' : '';
+    var KESINLIK_ADI = ['il merkezine göre', 'ilçe merkezine göre', 'mahalle merkezine göre'];
+    var km = (s.km || s.km === 0)
+      ? '<span class="uzaklik" title="' + KESINLIK_ADI[s.kesin] + '">≈' + s.km + ' km</span>'
+      : '';
+    return '<article class="kart">' +
+      '<h2>' + kacir(s.ad) + '</h2>' +
+      '<p class="yer">' + rozet +
+        '<span>' + kacir(ILLER[s.il].ad) + ' · ' + kacir(s.ilce) + '</span>' + km +
+      '</p>' +
+      '<p class="adres">' + kacir(s.adres) + '</p>' +
+      '<div class="eylemler">' +
+        '<a class="tarif" target="_blank" rel="noopener" ' +
+          'href="https://www.google.com/maps/dir/?api=1&destination=' + hedef + '">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M3 11l18-8-8 18-2-8z"></path></svg>Yol tarifi</a>' +
+        '<a class="goster" target="_blank" rel="noopener" ' +
+          'href="https://www.google.com/maps/search/?api=1&query=' + hedef + '">Haritada aç</a>' +
+      '</div>' +
+    '</article>';
+  }
+
+  var ADIM = 24;
+
+  function dahaGetir() {
+    var dilim = durum.sonuc.slice(durum.gosterilen, durum.gosterilen + ADIM);
+    if (!dilim.length) { $sentinel.hidden = true; return; }
+    var kap = document.createElement('div');
+    kap.innerHTML = dilim.map(kartHtml).join('');
+    while (kap.firstChild) $liste.appendChild(kap.firstChild);
+    durum.gosterilen += dilim.length;
+    $sentinel.hidden = durum.gosterilen >= durum.sonuc.length;
+  }
+
+  var gozcu = new IntersectionObserver(function (girisler) {
+    if (girisler[0].isIntersecting) dahaGetir();
+  }, { rootMargin: '400px' });
+  gozcu.observe($sentinel);
+
+  /* ---------- Türkiye haritası ---------- */
+  // Yoğunluk rampası: tek renk, açıktan koyuya (sıralı veri kuralı).
+  var RAMPA_ACIK = ['#d7ece6', '#a8d8ce', '#6fbfb0', '#3d9e8c', '#1f6f60'];
+  var RAMPA_KOYU = ['#1e3b38', '#275a51', '#34806f', '#45a692', '#6ecfb8'];
+  var ESIKLER = [10, 25, 50, 100];  // 1-9 / 10-24 / 25-49 / 50-99 / 100+
+
+  function koyuMu() {
+    var kok = document.documentElement.getAttribute('data-theme');
+    if (kok === 'dark') return true;
+    if (kok === 'light') return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function rampa() { return koyuMu() ? RAMPA_KOYU : RAMPA_ACIK; }
+
+  function basamak(sayi) {
+    if (!sayi) return -1;
+    for (var i = 0; i < ESIKLER.length; i++) {
+      if (sayi < ESIKLER[i]) return i;
+    }
+    return ESIKLER.length;
+  }
+
+  function ilRengi(sayi) {
+    var b = basamak(sayi);
+    return b < 0 ? 'var(--yuzey-2)' : rampa()[b];
+  }
+
+  function yansit(lat, lon) {
+    var k = HARITA.kenar;
+    return [
+      8 + (lon - k[0]) * HARITA.k * HARITA.olcek,
+      8 + (k[3] - lat) * HARITA.olcek
+    ];
+  }
+
+  function lejantCiz() {
+    document.getElementById('lejant').innerHTML = rampa().map(function (renk) {
+      return '<span class="kutu" style="background:' + renk + '"></span>';
+    }).join('');
+  }
+
+  function haritaCiz() {
+    var adSira = {};
+    ILLER.forEach(function (il, i) { adSira[il.ad] = i; });
+    var html = '';
+    Object.keys(HARITA.iller).forEach(function (ad) {
+      var i = adSira.hasOwnProperty(ad) ? adSira[ad] : -1;
+      var sayi = i >= 0 ? IL_SAYI[i] : 0;
+      html += '<path data-il="' + i + '" d="' + HARITA.iller[ad] + '" fill="' + ilRengi(sayi) + '">' +
+        '<title>' + kacir(ad) + ' — ' + (sayi ? sayi + ' istasyon' : 'istasyon yok') + '</title></path>';
+    });
+    $harita.innerHTML = html;
+
+    lejantCiz();
+  }
+
+  // Harita, arama metnine göre yeniden boyanır; il/ilçe seçimi yalnızca vurgular.
+  function haritaGuncelle() {
+    var kelimeler = sadelestir(durum.q).split(/\s+/).filter(Boolean);
+    var sayilar = new Array(ILLER.length);
+    for (var i = 0; i < sayilar.length; i++) sayilar[i] = 0;
+    if (kelimeler.length) {
+      HEPSI.forEach(function (st) {
+        for (var j = 0; j < kelimeler.length; j++) {
+          if (st.anahtar.indexOf(kelimeler[j]) === -1) return;
+        }
+        sayilar[st.il]++;
+      });
+    } else {
+      sayilar = IL_SAYI.slice();
+    }
+
+    var yollar = $harita.querySelectorAll('path[data-il]');
+    for (var p = 0; p < yollar.length; p++) {
+      var idx = +yollar[p].getAttribute('data-il');
+      var sayi = idx >= 0 ? sayilar[idx] : 0;
+      yollar[p].setAttribute('fill', ilRengi(sayi));
+      yollar[p].classList.toggle('secili', idx >= 0 && idx === durum.il);
+      var baslik = yollar[p].querySelector('title');
+      if (baslik && idx >= 0) {
+        baslik.textContent = ILLER[idx].ad + ' — ' + (sayi ? sayi + ' istasyon' : 'sonuç yok');
+      }
+    }
+
+    var $ipucu = document.getElementById('haritaIpucu');
+    if (durum.il >= 0 && durum.ilce) {
+      $ipucu.textContent = durum.ilce + ' — ' + durum.sonuc.length + ' istasyon';
+    } else if (durum.il >= 0) {
+      $ipucu.textContent = ILLER[durum.il].ad + ' — ' + sayilar[durum.il] + ' istasyon';
+    } else if (durum.konum && durum.enYakinIl >= 0) {
+      $ipucu.textContent = 'en yakın il: ' + ILLER[durum.enYakinIl].ad;
+    } else {
+      $ipucu.textContent = 'il seçmek için haritaya dokun';
+    }
+
+    var eski = $harita.querySelector('.ben');
+    if (eski) eski.remove();
+    if (durum.konum) {
+      var nk = yansit(durum.konum.lat, durum.konum.lon);
+      var gorus = ($harita.getAttribute('viewBox') || '0 0 1000 431').split(' ');
+      var birimK = (parseFloat(gorus[2]) || 1000) / Math.max($harita.clientWidth || 360, 1);
+      var nokta = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      nokta.setAttribute('cx', nk[0].toFixed(1));
+      nokta.setAttribute('cy', nk[1].toFixed(1));
+      nokta.setAttribute('r', (7 * birimK).toFixed(2));
+      nokta.setAttribute('stroke-width', (2.5 * birimK).toFixed(2));
+      nokta.setAttribute('class', 'ben');
+      var etiket = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      etiket.textContent = 'Buradasınız';
+      nokta.appendChild(etiket);
+      $harita.appendChild(nokta);
+    }
+  }
+
+  // --- il seçilince haritayı o ile yakınlaştır, ilçe merkezlerini göster ---
+  var TAM_GORUS = '0 0 1000 431';
+  var $geriBtn = document.getElementById('geriBtn');
+
+  function ilceNoktalari(ilIndex) {
+    var grup = {};
+    HEPSI.forEach(function (s) {
+      if (s.il !== ilIndex) return;
+      var g = grup[s.ilce];
+      if (g) { g.sayi++; return; }
+      grup[s.ilce] = { ad: s.ilce, lat: s.lat, lon: s.lon, sayi: 1 };
+    });
+    return Object.keys(grup).map(function (k) { return grup[k]; });
+  }
+
+  function haritaYakinlastir(ilIndex) {
+    var eskiler = $harita.querySelectorAll('.ilce-nokta, .ilce-etiket');
+    for (var e = 0; e < eskiler.length; e++) eskiler[e].remove();
+
+    if (ilIndex < 0) {
+      $harita.setAttribute('viewBox', TAM_GORUS);
+      $geriBtn.hidden = true;
+      return;
+    }
+
+    var yol = $harita.querySelector('path[data-il="' + ilIndex + '"]');
+    if (!yol) return;
+    var kutu = yol.getBBox();
+    if (!kutu.width || !kutu.height) return;  // harita gizliyken ölçü alınamaz
+    var pay = Math.max(kutu.width, kutu.height) * 0.18 + 6;
+    $harita.setAttribute('viewBox', [
+      (kutu.x - pay).toFixed(1), (kutu.y - pay).toFixed(1),
+      (kutu.width + 2 * pay).toFixed(1), (kutu.height + 2 * pay).toFixed(1)
+    ].join(' '));
+    $geriBtn.hidden = false;
+
+    // Yakınlaşınca yazı ve noktalar viewBox ile birlikte büyüyüp küçülmesin:
+    // ölçüleri ekran pikseline çevirerek veriyoruz.
+    var birim = (kutu.width + 2 * pay) / Math.max($harita.clientWidth || 360, 1);
+    var noktalar = ilceNoktalari(ilIndex);
+    var enCok = noktalar.reduce(function (m, n) { return Math.max(m, n.sayi); }, 1);
+    var ns = 'http://www.w3.org/2000/svg';
+    // Her ilçeyi etiketlemek telefonda okunmaz hale geliyor. Yoğun olandan
+    // başlayıp yalnızca bir öncekilerle çakışmayanları yazıyoruz; kalan ilçe
+    // adları dokunulduğunda başlıkta görünür.
+    var yaziBoy = 11 * birim;
+    var yerlesik = [];
+    var etiketli = {};
+    var sirali = noktalar.slice().sort(function (a, b) {
+      if (durum.ilce) {
+        if (a.ad === durum.ilce) return -1;
+        if (b.ad === durum.ilce) return 1;
+      }
+      return b.sayi - a.sayi;
+    });
+    sirali.forEach(function (n) {
+      if (yerlesik.length >= 8) return;
+      var p = yansit(n.lat, n.lon);
+      var g = n.ad.length * yaziBoy * 0.55;
+      var kutu = [p[0] - g / 2, p[1] - yaziBoy * 2.2, p[0] + g / 2, p[1] - yaziBoy * 0.6];
+      for (var i = 0; i < yerlesik.length; i++) {
+        var v = yerlesik[i];
+        if (kutu[0] < v[2] && kutu[2] > v[0] && kutu[1] < v[3] && kutu[3] > v[1]) return;
+      }
+      yerlesik.push(kutu);
+      etiketli[n.ad] = true;
+    });
+
+    noktalar.forEach(function (n) {
+      var p = yansit(n.lat, n.lon);
+      var r = (2.5 + 4.5 * Math.sqrt(n.sayi / enCok)) * birim;
+      var daire = document.createElementNS(ns, 'circle');
+      daire.setAttribute('cx', p[0].toFixed(1));
+      daire.setAttribute('cy', p[1].toFixed(1));
+      daire.setAttribute('r', r.toFixed(2));
+      daire.setAttribute('class', 'ilce-nokta' + (n.ad === durum.ilce ? ' secili' : ''));
+      daire.setAttribute('stroke-width', (1 * birim).toFixed(2));
+      daire.setAttribute('data-ilce', n.ad);
+      var bilgi = document.createElementNS(ns, 'title');
+      bilgi.textContent = n.ad + ' — ' + n.sayi + ' istasyon';
+      daire.appendChild(bilgi);
+      $harita.appendChild(daire);
+
+      if (!etiketli[n.ad]) return;
+      var yazi = document.createElementNS(ns, 'text');
+      yazi.setAttribute('x', p[0].toFixed(1));
+      yazi.setAttribute('y', (p[1] - r - 3 * birim).toFixed(1));
+      yazi.setAttribute('class', 'ilce-etiket');
+      yazi.setAttribute('font-size', yaziBoy.toFixed(2));
+      yazi.setAttribute('stroke-width', (3 * birim).toFixed(2));
+      yazi.textContent = n.ad;
+      $harita.appendChild(yazi);
+    });
+  }
+
+  function ilSec(i) {
+    durum.il = i;
+    durum.ilce = '';
+    $il.value = String(durum.il);
+    ilceleriDoldur();
+    suz();
+    haritaYakinlastir(durum.il);
+  }
+
+  $harita.addEventListener('click', function (e) {
+    var nokta = e.target.closest('circle[data-ilce]');
+    if (nokta) {
+      var ad = nokta.getAttribute('data-ilce');
+      durum.ilce = (durum.ilce === ad) ? '' : ad;
+      $ilce.value = durum.ilce;
+      suz();
+      haritaYakinlastir(durum.il);
+      $liste.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    var yol = e.target.closest('path[data-il]');
+    if (!yol) return;
+    var i = +yol.getAttribute('data-il');
+    if (i < 0) return;
+    ilSec(durum.il === i ? -1 : i);
+    if (durum.il >= 0) {
+      $liste.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+
+  $geriBtn.addEventListener('click', function () { ilSec(-1); });
+
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+      lejantCiz();
+      haritaGuncelle();
+    });
+  }
+
+  /* ---------- Olaylar ---------- */
+  var zamanlayici;
+  $ara.addEventListener('input', function () {
+    clearTimeout(zamanlayici);
+    zamanlayici = setTimeout(function () {
+      durum.q = $ara.value;
+      suz();
+    }, 120);
+  });
+
+  $il.addEventListener('change', function () {
+    ilSec(+$il.value);
+  });
+
+  $ilce.addEventListener('change', function () {
+    durum.ilce = $ilce.value;
+    suz();
+    haritaYakinlastir(durum.il);
+  });
+
+  var $konumBtn = document.getElementById('konumBtn');
+
+  function konumYazisi(metin) { $konumBtn.lastChild.textContent = ' ' + metin; }
+
+  var konumBekci = null;
+
+  function konumAl() {
+    if (!navigator.geolocation) {
+      konumYazisi('Konum desteklenmiyor');
+      return;
+    }
+    konumYazisi('Konum alınıyor…');
+    // Kullanıcı izin kutusunu yanıtlamazsa tarayıcı zaman aşımını her zaman
+    // tetiklemiyor; düğme "alınıyor" durumunda asılı kalmasın.
+    clearTimeout(konumBekci);
+    konumBekci = setTimeout(function () {
+      if (!durum.konum) {
+        konumYazisi('Yakınımdakiler');
+        $konumBtn.setAttribute('aria-pressed', 'false');
+      }
+    }, 12000);
+    navigator.geolocation.getCurrentPosition(function (k) {
+      clearTimeout(konumBekci);
+      durum.konum = { lat: k.coords.latitude, lon: k.coords.longitude };
+      $konumBtn.setAttribute('aria-pressed', 'true');
+      konumYazisi('Yakındakiler önde');
+      var enYakin = -1, enAz = Infinity;
+      HEPSI.forEach(function (st) {
+        var d = uzaklikKm(durum.konum.lat, durum.konum.lon, st.lat, st.lon);
+        if (d < enAz) { enAz = d; enYakin = st.il; }
+      });
+      durum.enYakinIl = enYakin;
+      suz();
+    }, function () {
+      clearTimeout(konumBekci);
+      konumYazisi('Yakınımdakiler');
+      $konumBtn.setAttribute('aria-pressed', 'false');
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 });
+  }
+
+  $konumBtn.addEventListener('click', function () {
+    if (durum.konum) {
+      clearTimeout(konumBekci);
+      durum.konum = null;
+      durum.enYakinIl = -1;
+      $konumBtn.setAttribute('aria-pressed', 'false');
+      konumYazisi('Yakınımdakiler');
+      suz();
+      return;
+    }
+    konumAl();
+  });
+
+  var $haritaBtn = document.getElementById('haritaBtn');
+  $haritaBtn.addEventListener('click', function () {
+    var gizli = $haritaKabi.hasAttribute('hidden');
+    if (gizli) $haritaKabi.removeAttribute('hidden');
+    else $haritaKabi.setAttribute('hidden', '');
+    $haritaBtn.textContent = gizli ? 'Haritayı gizle' : 'Haritayı göster';
+    $haritaBtn.setAttribute('aria-expanded', String(gizli));
+  });
+
+  /* ---------- Başlangıç ---------- */
+  document.getElementById('kaynakNot').textContent =
+    HEPSI.length + ' istasyon · ' + ILLER.length +
+    ' il · kaynak: istasyon listesi (' + VERI.guncelleme + ')' +
+    ' · uzaklıklar mahalle/ilçe merkezine göre yaklaşıktır';
+
+  document.documentElement.lang = 'tr';
+  illeriDoldur();
+  ilceleriDoldur();
+  haritaCiz();
+  suz();
+  konumAl();
+})();
+</script>
